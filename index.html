@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Viewfinder">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>Viewfinder</title>
+<style>
+:root{--bg:#000;--fg:#f2f2f2;--mut:#9a9a9a;--acc:#ffb300;--panel:#151515;--line:#2c2c2c}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:15px/1.35 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif;overflow:hidden;overscroll-behavior:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+video{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+button,select,input,textarea{font:inherit;color:inherit}
+#hud{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 8px) 14px 18px;display:flex;justify-content:space-between;gap:10px;font-size:13px;font-variant-numeric:tabular-nums;background:linear-gradient(#000b,#0000);pointer-events:none}
+#hud b{color:var(--acc);font-weight:600}
+#hud .r{text-align:right}
+#warn{position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top) + 46px);color:#111;background:var(--acc);padding:6px 10px;border-radius:8px;font-size:13px;display:none}
+#bar{position:fixed;left:0;right:0;bottom:0;padding:18px 14px calc(env(safe-area-inset-bottom) + 12px);display:flex;align-items:center;justify-content:space-between;gap:8px;background:linear-gradient(#0000,#000c)}
+.btn{background:#222c;border:1px solid #4448;border-radius:12px;min-width:48px;height:48px;padding:0 12px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.btn:active{background:#555}
+#lens{min-width:78px;font-size:18px;font-weight:600}
+#shutter{width:68px;height:68px;border-radius:50%;border:4px solid #fff;background:#fff3;padding:0;cursor:pointer}
+#shutter:active{background:#fff}
+.grp{display:flex;gap:6px;align-items:center}
+.sheet{position:fixed;inset:0;background:#000d;display:none;z-index:5}
+.sheet.open{display:block}
+.panel{position:absolute;left:0;right:0;bottom:0;max-height:90%;overflow:auto;background:var(--panel);border-radius:18px 18px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom) + 20px)}
+.panel h2{margin:0 0 12px;font-size:17px;display:flex;justify-content:space-between;align-items:center}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
+.row label{color:var(--mut);flex:0 0 38%}
+.row select,.row input[type=number],.row input[type=text],.row textarea{flex:1;min-width:0;background:#222;border:1px solid #3a3a3a;border-radius:8px;padding:8px}
+.row input[type=checkbox]{width:22px;height:22px;accent-color:var(--acc)}
+.mut{color:var(--mut);font-size:12px}
+#start{position:fixed;inset:0;z-index:4;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px}
+#start button{background:var(--acc);color:#111;border:0;border-radius:12px;padding:14px 26px;font-weight:600;font-size:17px}
+#err{color:#ff8a80;max-width:420px}
+#gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.card{background:#1d1d1d;border-radius:12px;overflow:hidden}
+.card img{width:100%;display:block;background:#000}
+.card .t{padding:8px 10px;font-size:12px}
+.card .t .n{color:var(--fg);margin-top:4px;font-size:13px}
+.card .a{display:flex;gap:6px;padding:0 10px 10px}
+.card .a button{flex:1;background:#2a2a2a;border:1px solid #444;border-radius:8px;padding:7px 4px;cursor:pointer}
+#prev{width:100%;border-radius:10px;margin-bottom:10px;background:#000}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<video id="v" playsinline muted autoplay></video>
+
+<div id="hud"><div id="hl"></div><div class="r" id="hr"></div></div>
+<div id="warn"></div>
+
+<div id="bar">
+  <button class="btn" id="bGal" aria-label="Saved frames">Frames</button>
+  <div class="grp">
+    <button class="btn" id="bMinus" aria-label="Wider lens">&minus;</button>
+    <button class="btn" id="lens" aria-label="Lens settings">35mm</button>
+    <button class="btn" id="bPlus" aria-label="Longer lens">+</button>
+  </div>
+  <button id="shutter" aria-label="Capture frame"></button>
+  <button class="btn" id="bSet" aria-label="Settings">Setup</button>
+</div>
+
+<div id="start">
+  <h1 style="margin:0;font-size:26px">Viewfinder</h1>
+  <p class="mut" style="max-width:380px;margin:0">Director's viewfinder: pick a camera, lens and aspect ratio, see the frame through your phone, and save stills with lens notes. Landscape works best.</p>
+  <button id="bStart">Start camera</button>
+  <div id="err"></div>
+</div>
+
+<div class="sheet" id="setSheet"><div class="panel">
+  <h2>Setup <button class="btn" id="setClose">Done</button></h2>
+  <div class="row"><label>Camera</label><select id="sCam"></select></div>
+  <div class="row hide" id="cRow"><label>Sensor W × H mm</label><div class="grp" style="flex:1"><input type="number" id="cW" step="0.01" inputmode="decimal"><input type="number" id="cH" step="0.01" inputmode="decimal"></div></div>
+  <div class="row"><label>Focal length (mm)</label><input type="number" id="sFocal" step="0.5" min="1" inputmode="decimal"></div>
+  <div class="row"><label>Anamorphic squeeze</label><select id="sSq"></select></div>
+  <div class="row"><label>Frame aspect</label><select id="sAsp"></select></div>
+  <div class="row"><label>Phone lens</label><select id="sPh"></select></div>
+  <div class="row"><label>Phone lens (mm, full-frame equiv.)</label><input type="number" id="sPhEq" step="1" min="5" inputmode="decimal"></div>
+  <div class="row"><label>Phone camera</label><select id="sDev"></select></div>
+  <div class="row"><label>Preview quality</label><select id="sRes"><option value="1080">1080p</option><option value="2160">4K (if supported)</option></select></div>
+  <div class="row"><label>Rule of thirds</label><input type="checkbox" id="gThirds"></div>
+  <div class="row"><label>Center cross</label><input type="checkbox" id="gCenter"></div>
+  <div class="row"><label>Safe area (90%)</label><input type="checkbox" id="gSafe"></div>
+  <div class="row"><label>Fill screen with frame</label><input type="checkbox" id="gCrop"></div>
+  <p class="mut">Sensor sizes are approximate and depend on the recording mode, so check the manufacturer's spec for your exact format. Phone framing is an optical approximation: set "Phone lens" to the camera you are actually using (the 1&times; main camera is about 24&ndash;26mm equivalent on most phones).</p>
+</div></div>
+
+<div class="sheet" id="noteSheet"><div class="panel">
+  <h2>Save frame</h2>
+  <img id="prev" alt="Captured frame">
+  <div class="mut" id="prevMeta" style="margin-bottom:8px"></div>
+  <div class="row" style="border:0"><textarea id="noteIn" rows="2" placeholder="Note (blocking, subject, intent...)"></textarea></div>
+  <div class="grp" style="justify-content:flex-end;margin-top:8px">
+    <button class="btn" id="noteCancel">Discard</button>
+    <button class="btn" id="noteSave" style="background:var(--acc);color:#111;font-weight:600">Save</button>
+  </div>
+</div></div>
+
+<div class="sheet" id="galSheet"><div class="panel" style="top:0;max-height:100%;border-radius:0">
+  <h2>Saved frames <span class="grp"><button class="btn" id="bCsv">Export CSV</button><button class="btn" id="galClose">Close</button></span></h2>
+  <div id="gal"></div>
+</div></div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+
+/* ---------- data ---------- */
+const CAMERAS = [
+  {n:'ARRI Alexa 35 · 4K 3:2 Open Gate', w:27.99, h:19.22},
+  {n:'ARRI Alexa Mini LF · Open Gate',   w:36.70, h:25.54},
+  {n:'ARRI Alexa Mini · Open Gate',      w:28.25, h:18.17},
+  {n:'RED V-Raptor · 8K VV',             w:40.96, h:21.60},
+  {n:'RED Komodo · 6K',                  w:27.03, h:14.26},
+  {n:'Sony FX3 / FX6 / A7S III · 4K',    w:35.6,  h:20.0},
+  {n:'Canon C70 · 4K Super 35',          w:26.2,  h:13.8},
+  {n:'Blackmagic Pocket 6K',             w:23.10, h:12.99},
+  {n:'Blackmagic Pocket 4K',             w:18.96, h:10.0},
+  {n:'Super 35 (4-perf, full aperture)', w:24.89, h:18.66},
+  {n:'Full frame 36×24',                 w:36,    h:24},
+  {n:'Micro Four Thirds · 4K',           w:17.3,  h:9.7},
+  {n:'Super 16',                         w:12.52, h:7.41},
+  {n:'Custom…',                          w:0,     h:0}
+];
+const ASPECTS = [
+  {n:'Sensor native', a:null},
+  {n:'2.39:1', a:2.39}, {n:'2.00:1', a:2.0}, {n:'1.85:1', a:1.85},
+  {n:'16:9', a:16/9}, {n:'3:2', a:1.5}, {n:'4:3', a:4/3}, {n:'1:1', a:1},
+  {n:'4:5', a:0.8}, {n:'9:16', a:9/16}
+];
+const LENSES  = [14,16,18,21,24,25,27,29,32,35,40,50,65,75,85,100,135,150,200];
+const SQUEEZE = [1,1.3,1.5,1.8,2];
+const PHONE   = [
+  {n:'0.5× ultrawide (~13mm)', eq:13},
+  {n:'1× main (~26mm)',        eq:26},
+  {n:'2× (~52mm)',             eq:52},
+  {n:'3× (~77mm)',             eq:77},
+  {n:'5× (~120mm)',            eq:120},
+  {n:'Custom',                 eq:0}
+];
+
+const DEF = {cam:0, focal:35, squeeze:1, aspect:0, phoneEq:26, thirds:true, center:false,
+             safe:false, crop:false, deviceId:'', res:1080, cw:24.9, ch:13.1};
+let state = Object.assign({}, DEF);
+try { Object.assign(state, JSON.parse(localStorage.getItem('vf') || '{}')); } catch(e) {}
+const save = () => { try { localStorage.setItem('vf', JSON.stringify(state)); } catch(e) {} };
+
+/* ---------- geometry ---------- */
+const video = $('#v');
+
+function camSize() {
+  const c = CAMERAS[state.cam] || CAMERAS[0];
+  return c.w ? {w:c.w, h:c.h} : {w:+state.cw || 24.9, h:+state.ch || 13.1};
+}
+function aspectLabel(g) { return ASPECTS[state.aspect].a ? ASPECTS[state.aspect].n : g.aspect.toFixed(2) + ':1'; }
+
+function geom() {
+  const {w, h} = camSize(), sq = +state.squeeze || 1, f = Math.max(1, +state.focal || 35);
+  const aspect = ASPECTS[state.aspect].a || (w * sq) / h;
+  const tanT = (w * sq) / (2 * f);                       // tan of half horizontal FOV of the target lens
+  const hfov = 2 * Math.atan(tanT) * 180 / Math.PI;
+  const vfov = 2 * Math.atan(tanT / aspect) * 180 / Math.PI;
+  const vw = video.videoWidth || 1600, vh = video.videoHeight || 900, a = vw / vh;
+  const wEq = 43.27 * a / Math.sqrt(1 + a * a);          // full-frame-equivalent width for this video aspect
+  const tanP = wEq / (2 * Math.max(5, +state.phoneEq || 26));
+  let frac = tanT / tanP, warn = '';
+  if (frac > 1) { frac = 1; warn = 'Wider than the phone lens (' + state.phoneEq + 'mm eq). Use a wider phone camera or step back.'; }
+  let rw = frac * vw, rh = rw / aspect;
+  if (rh > vh) { rh = vh; rw = rh * aspect; warn = warn || 'Frame is taller than the phone view, so it shows a narrower field than the real lens.'; }
+  return {aspect, hfov, vfov, rw, rh, rx:(vw - rw) / 2, ry:(vh - rh) / 2, vw, vh, warn, w, h, sq, f};
+}
+
+/* ---------- render ---------- */
+const cv = $('#cv'), ctx = cv.getContext('2d');
+function resize() { const d = devicePixelRatio || 1; cv.width = Math.round(innerWidth * d); cv.height = Math.round(innerHeight * d); }
+addEventListener('resize', resize); resize();
+
+let lastHud = '';
+function draw() {
+  requestAnimationFrame(draw);
+  const W = cv.width, H = cv.height, d = devicePixelRatio || 1;
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+  if (!video.videoWidth) return;
+  const g = geom();
+  let box;
+  if (state.crop) {
+    const s = Math.min(W / g.rw, H / g.rh) * 0.96;
+    box = {w: g.rw * s, h: g.rh * s}; box.x = (W - box.w) / 2; box.y = (H - box.h) / 2;
+    ctx.drawImage(video, g.rx, g.ry, g.rw, g.rh, box.x, box.y, box.w, box.h);
+  } else {
+    const s = Math.min(W / g.vw, H / g.vh), dw = g.vw * s, dh = g.vh * s, dx = (W - dw) / 2, dy = (H - dh) / 2;
+    ctx.drawImage(video, dx, dy, dw, dh);
+    box = {x: dx + g.rx * s, y: dy + g.ry * s, w: g.rw * s, h: g.rh * s};
+    ctx.fillStyle = 'rgba(0,0,0,.62)'; ctx.beginPath();
+    ctx.rect(dx, dy, dw, dh); ctx.rect(box.x, box.y, box.w, box.h); ctx.fill('evenodd');
+  }
+  ctx.lineWidth = 2 * d; ctx.strokeStyle = '#ffb300'; ctx.strokeRect(box.x, box.y, box.w, box.h);
+  ctx.lineWidth = d; ctx.strokeStyle = 'rgba(255,255,255,.55)';
+  const line = (x1, y1, x2, y2) => { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); };
+  if (state.thirds) for (let i = 1; i < 3; i++) {
+    line(box.x + box.w * i / 3, box.y, box.x + box.w * i / 3, box.y + box.h);
+    line(box.x, box.y + box.h * i / 3, box.x + box.w, box.y + box.h * i / 3);
+  }
+  if (state.center) {
+    const cx = box.x + box.w / 2, cy = box.y + box.h / 2, k = 14 * d;
+    line(cx - k, cy, cx + k, cy); line(cx, cy - k, cx, cy + k);
+  }
+  if (state.safe) {
+    ctx.setLineDash([6 * d, 6 * d]);
+    ctx.strokeRect(box.x + box.w * .05, box.y + box.h * .05, box.w * .9, box.h * .9);
+    ctx.setLineDash([]);
+  }
+  const cam = CAMERAS[state.cam];
+  const hud = '<b>' + fmtLens(g) + '</b> · ' + g.hfov.toFixed(1) + '° H · ' + g.vfov.toFixed(1) + '° V|' +
+              cam.n + '<br>' + aspectLabel(g) + '|' + g.warn;
+  if (hud !== lastHud) {
+    lastHud = hud;
+    const p = hud.split('|');
+    $('#hl').innerHTML = p[0]; $('#hr').innerHTML = p[1];
+    const w = $('#warn'); w.textContent = p[2]; w.style.display = p[2] ? 'block' : 'none';
+    $('#lens').textContent = fmtLens(g);
+  }
+}
+function fmtLens(g) { return (+state.focal) + 'mm' + (g.sq !== 1 ? ' ' + g.sq + '×' : ''); }
+
+/* ---------- camera ---------- */
+let stream = null;
+async function startCam(deviceId) {
+  $('#err').textContent = '';
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    $('#err').textContent = 'Camera access needs HTTPS (or localhost). Open the hosted link, not a file.'; return false;
+  }
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  const hd = +state.res === 2160 ? {width:{ideal:3840}, height:{ideal:2160}} : {width:{ideal:1920}, height:{ideal:1080}};
+  const video_c = deviceId ? Object.assign({deviceId:{exact:deviceId}}, hd) : Object.assign({facingMode:{ideal:'environment'}}, hd);
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({audio:false, video:video_c});
+  } catch (e) {
+    if (deviceId) { state.deviceId = ''; save(); return startCam(''); }
+    $('#err').textContent = 'Could not open the camera (' + (e.name || 'error') + '). Allow camera access in your browser and try again.';
+    $('#start').classList.remove('hide'); return false;
+  }
+  video.srcObject = stream;
+  try { await video.play(); } catch (e) {}
+  $('#start').classList.add('hide');
+  try { const dv = (await navigator.mediaDevices.enumerateDevices()).filter(x => x.kind === 'videoinput'); fillDevices(dv); } catch (e) {}
+  try { if ('wakeLock' in navigator) await navigator.wakeLock.request('screen'); } catch (e) {}
+  return true;
+}
+function fillDevices(list) {
+  const s = $('#sDev'); s.innerHTML = '';
+  const cur = stream && stream.getVideoTracks()[0] ? stream.getVideoTracks()[0].getSettings().deviceId : '';
+  list.forEach((d, i) => {
+    const o = document.createElement('option'); o.value = d.deviceId; o.textContent = d.label || ('Camera ' + (i + 1));
+    if (d.deviceId === cur) o.selected = true; s.appendChild(o);
+  });
+}
+$('#bStart').onclick = () => startCam(state.deviceId);
+
+/* ---------- storage (IndexedDB) ---------- */
+const DB = new Promise((res, rej) => {
+  const r = indexedDB.open('vf', 1);
+  r.onupgradeneeded = () => r.result.createObjectStore('shots', {keyPath:'id', autoIncrement:true});
+  r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+});
+async function tx(mode, fn) {
+  const db = await DB;
+  return new Promise((res, rej) => {
+    const t = db.transaction('shots', mode), r = fn(t.objectStore('shots'));
+    t.oncomplete = () => res(r && r.result); t.onerror = () => rej(t.error);
+  });
+}
+
+/* ---------- capture ---------- */
+let pending = null, prevUrl = null;
+function grab() {
+  const g = geom(), c = document.createElement('canvas');
+  c.width = Math.round(g.rw); c.height = Math.round(g.rh);
+  c.getContext('2d').drawImage(video, g.rx, g.ry, g.rw, g.rh, 0, 0, c.width, c.height);
+  return new Promise(res => c.toBlob(b => res({blob:b, g}), 'image/jpeg', 0.92));
+}
+$('#shutter').onclick = async () => {
+  if (!video.videoWidth) return;
+  const {blob, g} = await grab();
+  pending = {ts:Date.now(), blob, note:'', cam:CAMERAS[state.cam].n, focal:+state.focal, squeeze:g.sq,
+             aspect:aspectLabel(g), hfov:+g.hfov.toFixed(2), vfov:+g.vfov.toFixed(2), phoneEq:+state.phoneEq};
+  if (prevUrl) URL.revokeObjectURL(prevUrl);
+  prevUrl = URL.createObjectURL(blob); $('#prev').src = prevUrl;
+  $('#prevMeta').textContent = metaStr(pending); $('#noteIn').value = '';
+  $('#noteSheet').classList.add('open'); $('#noteIn').focus();
+};
+$('#noteSave').onclick = async () => {
+  if (!pending) return; pending.note = $('#noteIn').value.trim();
+  await tx('readwrite', s => s.add(pending)); pending = null; $('#noteSheet').classList.remove('open');
+};
+$('#noteCancel').onclick = () => { pending = null; $('#noteSheet').classList.remove('open'); };
+
+const metaStr = r => r.focal + 'mm' + (r.squeeze !== 1 ? ' ' + r.squeeze + '× anamorphic' : '') + ' · ' + r.cam + ' · ' + r.aspect + ' · ' + r.hfov + '° H';
+const pad = n => String(n).padStart(2, '0');
+function fname(r) {
+  const t = new Date(r.ts);
+  return 'frame_' + t.getFullYear() + pad(t.getMonth() + 1) + pad(t.getDate()) + '_' + pad(t.getHours()) + pad(t.getMinutes()) + pad(t.getSeconds()) + '_' + r.focal + 'mm.jpg';
+}
+function download(blob, name) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+async function shareOrSave(r) {
+  const file = new File([r.blob], fname(r), {type:'image/jpeg'});
+  try {
+    if (navigator.canShare && navigator.canShare({files:[file]})) { await navigator.share({files:[file], text:metaStr(r) + (r.note ? ' — ' + r.note : '')}); return; }
+  } catch (e) { if (e.name === 'AbortError') return; }
+  download(r.blob, fname(r));
+}
+
+/* ---------- gallery ---------- */
+let galUrls = [];
+async function renderGallery() {
+  galUrls.forEach(u => URL.revokeObjectURL(u)); galUrls = [];
+  const list = ((await tx('readonly', s => s.getAll())) || []).reverse();
+  const box = $('#gal'); box.innerHTML = '';
+  if (!list.length) { const p = document.createElement('p'); p.className = 'mut'; p.textContent = 'No frames saved yet.'; box.appendChild(p); return; }
+  for (const r of list) {
+    const url = URL.createObjectURL(r.blob); galUrls.push(url);
+    const c = document.createElement('div'); c.className = 'card';
+    const im = document.createElement('img'); im.src = url; im.alt = 'Saved frame'; c.appendChild(im);
+    const t = document.createElement('div'); t.className = 't';
+    t.textContent = new Date(r.ts).toLocaleString() + ' · ' + metaStr(r);
+    const n = document.createElement('div'); n.className = 'n'; n.textContent = r.note || ''; t.appendChild(n); c.appendChild(t);
+    const a = document.createElement('div'); a.className = 'a';
+    const mk = (label, fn) => { const b = document.createElement('button'); b.textContent = label; b.onclick = fn; a.appendChild(b); };
+    mk('Save / share', () => shareOrSave(r));
+    mk('Note', async () => { const v = prompt('Note for this frame', r.note || ''); if (v === null) return; r.note = v.trim(); await tx('readwrite', s => s.put(r)); renderGallery(); });
+    mk('Delete', async () => { if (!confirm('Delete this frame?')) return; await tx('readwrite', s => s.delete(r.id)); renderGallery(); });
+    c.appendChild(a); box.appendChild(c);
+  }
+}
+$('#bGal').onclick = async () => { $('#galSheet').classList.add('open'); await renderGallery(); };
+$('#galClose').onclick = () => $('#galSheet').classList.remove('open');
+$('#bCsv').onclick = async () => {
+  const list = (await tx('readonly', s => s.getAll())) || [];
+  const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const rows = [['time','file','focal_mm','squeeze','camera','aspect','hfov_deg','vfov_deg','phone_lens_eq_mm','note'].join(',')];
+  list.forEach(r => rows.push([new Date(r.ts).toISOString(), fname(r), r.focal, r.squeeze, r.cam, r.aspect, r.hfov, r.vfov, r.phoneEq, r.note].map(q).join(',')));
+  download(new Blob([rows.join('\n')], {type:'text/csv'}), 'viewfinder_frames.csv');
+};
+
+/* ---------- lens stepping ---------- */
+function stepLens(dir) {
+  const f = +state.focal;
+  if (dir > 0) state.focal = LENSES.find(v => v > f + 1e-6) || LENSES[LENSES.length - 1];
+  else state.focal = LENSES.filter(v => v < f - 1e-6).pop() || LENSES[0];
+  save(); syncUI();
+}
+$('#bPlus').onclick = () => stepLens(1);
+$('#bMinus').onclick = () => stepLens(-1);
+
+/* ---------- settings UI ---------- */
+function fill(sel, items, label) { sel.innerHTML = ''; items.forEach((it, i) => { const o = document.createElement('option'); o.value = i; o.textContent = label(it); sel.appendChild(o); }); }
+fill($('#sCam'), CAMERAS, c => c.n);
+fill($('#sSq'), SQUEEZE, v => v === 1 ? '1× (spherical)' : v + '×');
+fill($('#sAsp'), ASPECTS, a => a.n);
+fill($('#sPh'), PHONE, p => p.n);
+
+function syncUI() {
+  $('#sCam').value = state.cam; $('#cRow').classList.toggle('hide', !!CAMERAS[state.cam].w);
+  $('#cW').value = state.cw; $('#cH').value = state.ch;
+  $('#sFocal').value = state.focal; $('#sSq').value = SQUEEZE.indexOf(+state.squeeze) < 0 ? 0 : SQUEEZE.indexOf(+state.squeeze);
+  $('#sAsp').value = state.aspect;
+  const pi = PHONE.findIndex(p => p.eq === +state.phoneEq); $('#sPh').value = pi < 0 ? PHONE.length - 1 : pi;
+  $('#sPhEq').value = state.phoneEq; $('#sRes').value = state.res;
+  $('#gThirds').checked = !!state.thirds; $('#gCenter').checked = !!state.center; $('#gSafe').checked = !!state.safe; $('#gCrop').checked = !!state.crop;
+  lastHud = '';
+}
+const on = (id, ev, fn) => $(id).addEventListener(ev, () => { fn(); save(); syncUI(); });
+on('#sCam', 'change', () => state.cam = +$('#sCam').value);
+on('#cW', 'change', () => state.cw = +$('#cW').value || DEF.cw);
+on('#cH', 'change', () => state.ch = +$('#cH').value || DEF.ch);
+on('#sFocal', 'change', () => state.focal = Math.max(1, +$('#sFocal').value || 35));
+on('#sSq', 'change', () => state.squeeze = SQUEEZE[+$('#sSq').value]);
+on('#sAsp', 'change', () => state.aspect = +$('#sAsp').value);
+on('#sPh', 'change', () => { const p = PHONE[+$('#sPh').value]; if (p.eq) state.phoneEq = p.eq; });
+on('#sPhEq', 'change', () => state.phoneEq = Math.max(5, +$('#sPhEq').value || 26));
+on('#gThirds', 'change', () => state.thirds = $('#gThirds').checked);
+on('#gCenter', 'change', () => state.center = $('#gCenter').checked);
+on('#gSafe', 'change', () => state.safe = $('#gSafe').checked);
+on('#gCrop', 'change', () => state.crop = $('#gCrop').checked);
+$('#sRes').addEventListener('change', () => { state.res = +$('#sRes').value; save(); startCam(state.deviceId); });
+$('#sDev').addEventListener('change', () => { state.deviceId = $('#sDev').value; save(); startCam(state.deviceId); });
+$('#bSet').onclick = () => { syncUI(); $('#setSheet').classList.add('open'); };
+$('#lens').onclick = () => { syncUI(); $('#setSheet').classList.add('open'); $('#sFocal').focus(); };
+$('#setClose').onclick = () => $('#setSheet').classList.remove('open');
+
+/* ---------- boot ---------- */
+syncUI(); requestAnimationFrame(draw);
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
+document.addEventListener('visibilitychange', async () => {
+  if (!document.hidden) { try { if ('wakeLock' in navigator && stream) await navigator.wakeLock.request('screen'); } catch (e) {} }
+});
+</script>
+</body>
+</html>
