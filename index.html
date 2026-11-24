@@ -6,49 +6,111 @@
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Viewfinder">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <title>Viewfinder</title>
 <style>
-:root{--bg:#000;--fg:#f2f2f2;--mut:#9a9a9a;--acc:#ffb300;--panel:#151515;--line:#2c2c2c}
+:root{--bg:#000;--fg:#f2f2f2;--mut:#8d8d92;--acc:#ffb300;--card:#1c1c1e;--card2:#151517;--line:#2a2a2c;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:15px/1.35 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif;overflow:hidden;overscroll-behavior:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:16px/1.3 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif;overflow:hidden;overscroll-behavior:none;-webkit-user-select:none;user-select:none}
 canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
 video{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 button,select,input,textarea{font:inherit;color:inherit}
-#hud{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 8px) 14px 18px;display:flex;justify-content:space-between;gap:10px;font-size:13px;font-variant-numeric:tabular-nums;background:linear-gradient(#000b,#0000);pointer-events:none}
-#hud b{color:var(--acc);font-weight:600}
+button{cursor:pointer}
+.mono{font-family:var(--mono)}
+#hud{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 6px) calc(env(safe-area-inset-right) + 14px) 14px calc(env(safe-area-inset-left) + 14px);display:flex;justify-content:space-between;gap:12px;font-size:13px;background:linear-gradient(#000a,#0000);pointer-events:none;z-index:2}
+#hud b{color:var(--acc);font-size:17px;font-weight:600}
+#hud .d{font-family:var(--mono);font-size:11.5px;color:#cfcfd4;margin-top:1px}
 #hud .r{text-align:right}
-#warn{position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top) + 46px);color:#111;background:var(--acc);padding:6px 10px;border-radius:8px;font-size:13px;display:none}
-#bar{position:fixed;left:0;right:0;bottom:0;padding:18px 14px calc(env(safe-area-inset-bottom) + 12px);display:flex;align-items:center;justify-content:space-between;gap:8px;background:linear-gradient(#0000,#000c)}
-.btn{background:#222c;border:1px solid #4448;border-radius:12px;min-width:48px;height:48px;padding:0 12px;display:flex;align-items:center;justify-content:center;cursor:pointer}
-.btn:active{background:#555}
-#lens{min-width:78px;font-size:18px;font-weight:600}
-#shutter{width:68px;height:68px;border-radius:50%;border:4px solid #fff;background:#fff3;padding:0;cursor:pointer}
+#warn{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 50px);max-width:80%;color:#111;background:var(--acc);padding:5px 12px;border-radius:999px;font-size:12.5px;display:none;z-index:2;text-align:center}
+#strip{position:fixed;left:calc(env(safe-area-inset-left) + 10px);right:calc(env(safe-area-inset-right) + 96px);bottom:calc(env(safe-area-inset-bottom) + 8px);display:flex;align-items:center;gap:6px;overflow-x:auto;padding:6px 2px;scrollbar-width:none;z-index:2}
+#strip::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;min-width:50px;height:44px;padding:0 12px;border-radius:12px;border:1px solid #4448;background:#1c1c1ecc;font-family:var(--mono);font-size:15px}
+.chip.on{background:var(--acc);border-color:var(--acc);color:#111;font-weight:700}
+#strip input[type=range]{flex:1;min-width:140px;accent-color:var(--acc);height:44px}
+#strip .zv{font-family:var(--mono);font-size:18px;min-width:78px;text-align:center;color:var(--acc);font-weight:700}
+#side{position:fixed;right:calc(env(safe-area-inset-right) + 10px);top:calc(50% + 6px);transform:translateY(-50%);display:flex;flex-direction:column;gap:7px;align-items:center;z-index:2}
+.sb{width:58px;height:38px;border-radius:13px;border:1px solid #4448;background:#1c1c1ecc;font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;display:flex;align-items:center;justify-content:center;padding:0}
+.sb:active{background:#555}
+#shutter{width:62px;height:62px;border-radius:50%;border:4px solid #fff;background:#fff3;padding:0}
 #shutter:active{background:#fff}
-.grp{display:flex;gap:6px;align-items:center}
-.sheet{position:fixed;inset:0;background:#000d;display:none;z-index:5}
-.sheet.open{display:block}
-.panel{position:absolute;left:0;right:0;bottom:0;max-height:90%;overflow:auto;background:var(--panel);border-radius:18px 18px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom) + 20px)}
-.panel h2{margin:0 0 12px;font-size:17px;display:flex;justify-content:space-between;align-items:center}
-.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
-.row label{color:var(--mut);flex:0 0 38%}
-.row select,.row input[type=number],.row input[type=text],.row textarea{flex:1;min-width:0;background:#222;border:1px solid #3a3a3a;border-radius:8px;padding:8px}
-.row input[type=checkbox]{width:22px;height:22px;accent-color:var(--acc)}
-.mut{color:var(--mut);font-size:12px}
+@media (orientation:portrait){
+  #side{top:auto;right:0;left:0;bottom:calc(env(safe-area-inset-bottom) + 62px);transform:none;flex-direction:row;justify-content:center;gap:12px}
+  #strip{right:calc(env(safe-area-inset-right) + 10px)}
+}
 #start{position:fixed;inset:0;z-index:4;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px}
-#start button{background:var(--acc);color:#111;border:0;border-radius:12px;padding:14px 26px;font-weight:600;font-size:17px}
-#err{color:#ff8a80;max-width:420px}
-#gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
-.card{background:#1d1d1d;border-radius:12px;overflow:hidden}
-.card img{width:100%;display:block;background:#000}
-.card .t{padding:8px 10px;font-size:12px}
-.card .t .n{color:var(--fg);margin-top:4px;font-size:13px}
-.card .a{display:flex;gap:6px;padding:0 10px 10px}
-.card .a button{flex:1;background:#2a2a2a;border:1px solid #444;border-radius:8px;padding:7px 4px;cursor:pointer}
-#prev{width:100%;border-radius:10px;margin-bottom:10px;background:#000}
+#start button{background:var(--acc);color:#111;border:0;border-radius:14px;padding:14px 28px;font-weight:700;font-size:17px}
+#err{color:#ff8a80;max-width:420px;font-size:14px}
+#sheet{position:fixed;inset:0;background:#000;z-index:6;display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;-webkit-user-select:none}
+#sheet.open{display:block}
+#sheet.clear{background:transparent;pointer-events:none}
+#sheet.clear .pg{pointer-events:auto}
+.pg{max-width:980px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 12px) calc(env(safe-area-inset-right) + 20px) calc(env(safe-area-inset-bottom) + 24px) calc(env(safe-area-inset-left) + 20px)}
+.ttl-row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;margin:2px 0 10px}
+.ttl-row h1{margin:0;font-size:19px;font-weight:600}
+.back{justify-self:start;background:none;border:0;color:var(--acc);font-size:18px;padding:6px 0}
+.rc{width:100%;display:flex;align-items:center;gap:16px;text-align:left;background:var(--card);border:0;border-radius:22px;padding:18px 20px;margin-bottom:12px}
+.rc .ri{width:46px;text-align:center;color:var(--acc);font-size:30px}
+.rc .rt{flex:1;min-width:0}
+.lab{font-family:var(--mono);font-size:12px;letter-spacing:.2em;color:var(--mut);text-transform:uppercase}
+.rc .ttl{font-size:21px;font-weight:700;margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc .det{font-family:var(--mono);font-size:13.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chev{color:var(--mut);font-size:30px}
+.rcgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.rcgrid .rc{margin:0}
+@media (orientation:portrait){.rcgrid{grid-template-columns:1fr}}
+.big{background:var(--card);border:0;border-radius:22px;color:var(--acc);font-weight:700;font-size:20px;padding:20px;width:100%;margin:12px 0}
+.pill{display:block;margin:16px auto 0;background:var(--card);border:0;border-radius:999px;color:var(--acc);font-weight:600;font-size:20px;padding:16px 56px}
+.pill.fill{background:var(--acc);color:#111;font-weight:700;border-radius:6px;padding:16px 72px}
+.sec{font-family:var(--mono);font-size:12px;letter-spacing:.2em;color:var(--mut);margin:22px 4px 8px;text-transform:uppercase}
+.list{background:var(--card);border-radius:20px;overflow:hidden}
+.li{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:14px 18px;font-size:17px}
+.li:last-child{border-bottom:0}
+.li .s{display:block;font-family:var(--mono);font-size:12.5px;color:var(--mut);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li .tx{min-width:0;flex:1}
+.li.on{background:#3a2d12;color:var(--acc)}
+.li .x{color:var(--mut);font-size:24px;padding:0 8px}
+.tag{display:inline-block;background:#3a2d12;color:var(--acc);border-radius:6px;padding:1px 7px;font-family:var(--mono);font-size:12.5px;font-weight:700;margin-left:6px}
+.cnt{color:var(--mut);font-family:var(--mono);font-size:13px}
+.ck{width:26px;height:26px;border-radius:50%;border:2px solid #555;flex:0 0 auto}
+.ck.on{background:var(--acc);border-color:var(--acc);position:relative}
+.ck.on::after{content:"✓";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#111;font-weight:800;font-size:15px}
+.search{flex:1;min-width:0;background:var(--card2);border:0;border-radius:8px;padding:11px 14px;font-size:17px;-webkit-user-select:text;user-select:text}
+.srow{display:flex;gap:10px;margin-bottom:12px}
+.hbtn{justify-self:end;background:none;border:0;color:var(--acc);font-size:18px;font-weight:600;padding:6px 0}
+.cols{display:grid;gap:14px;align-items:start}
+.cols.c3{grid-template-columns:.9fr 1.1fr 1.2fr}
+.cols.c2{grid-template-columns:.8fr 2fr}
+.colbox{max-height:calc(100vh - 170px);min-height:150px;overflow-y:auto;background:var(--card2);border-radius:8px}
+.colbox .li{padding:12px 16px}
+.hdrs{display:grid;gap:14px;margin-bottom:6px}
+.opts{display:flex;flex-wrap:wrap;gap:10px 26px;font-family:var(--mono);font-size:19px;margin:6px 0 14px}
+.opt{background:none;border:0;color:#6d6d72;font-family:var(--mono);font-size:19px;padding:6px 0}
+.opt.on{color:var(--acc)}
+.frow{display:flex;gap:30px;flex-wrap:wrap;align-items:flex-start;font-family:var(--mono);font-size:19px;margin:10px 0}
+.grp3{display:flex;align-items:center;gap:12px}
+.grp3 .l{color:#a0a0a5}
+.stack{display:flex;flex-direction:column}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}
+.row label{color:var(--mut);flex:0 0 42%;font-size:15px}
+.row input[type=number],.row input[type=text],.row select,.row textarea{flex:1;min-width:0;background:#222;border:1px solid #3a3a3a;border-radius:8px;padding:9px;-webkit-user-select:text;user-select:text}
+.mut{color:var(--mut);font-size:13px;line-height:1.4}
+.panel{position:fixed;left:0;right:0;bottom:0;background:#151517f2;border-radius:20px 20px 0 0;padding:14px 18px calc(env(safe-area-inset-bottom) + 14px);max-height:50vh;overflow:auto;pointer-events:auto}
+@media (orientation:landscape){.panel{top:0;left:auto;width:min(48vw,460px);max-height:none;border-radius:20px 0 0 20px;padding-top:calc(env(safe-area-inset-top) + 12px);padding-right:calc(env(safe-area-inset-right) + 16px)}}
+.btnrow{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
+.btn{background:#2a2a2d;border:1px solid #444;border-radius:12px;min-height:44px;padding:0 18px}
+.btn.pri{background:var(--acc);color:#111;border-color:var(--acc);font-weight:700}
+#gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.gc{background:var(--card);border-radius:14px;overflow:hidden}
+.gc img{width:100%;display:block;background:#000}
+.gc .t{padding:8px 10px;font-size:12px;color:#c9c9ce}
+.gc .t .n{color:var(--fg);margin-top:4px;font-size:14px}
+.gc .a{display:flex;gap:6px;padding:0 10px 10px}
+.gc .a button{flex:1;background:#2a2a2d;border:1px solid #444;border-radius:8px;padding:8px 4px}
 .hide{display:none!important}
+body.cal #side,body.cal #strip,body.cal #hud,body.cal #warn{display:none!important}
 </style>
 </head>
 <body>
@@ -57,216 +119,335 @@ button,select,input,textarea{font:inherit;color:inherit}
 
 <div id="hud"><div id="hl"></div><div class="r" id="hr"></div></div>
 <div id="warn"></div>
-
-<div id="bar">
-  <button class="btn" id="bGal" aria-label="Saved frames">Frames</button>
-  <div class="grp">
-    <button class="btn" id="bMinus" aria-label="Wider lens">&minus;</button>
-    <button class="btn" id="lens" aria-label="Lens settings">35mm</button>
-    <button class="btn" id="bPlus" aria-label="Longer lens">+</button>
-  </div>
+<div id="strip"></div>
+<div id="side">
+  <button class="sb" id="bRig">Rig</button>
+  <button class="sb" id="bFl">Lines</button>
   <button id="shutter" aria-label="Capture frame"></button>
-  <button class="btn" id="bSet" aria-label="Settings">Setup</button>
+  <button class="sb" id="bGal">Frames</button>
+  <button class="sb" id="bSet">Setup</button>
 </div>
 
 <div id="start">
-  <h1 style="margin:0;font-size:26px">Viewfinder</h1>
-  <p class="mut" style="max-width:380px;margin:0">Director's viewfinder: pick a camera, lens and aspect ratio, see the frame through your phone, and save stills with lens notes. Landscape works best.</p>
+  <h1 style="margin:0;font-size:28px">Viewfinder</h1>
+  <p class="mut" style="max-width:400px;margin:0">Pick a camera sensor, a lens and an adapter. The preview zooms to match the lens on that sensor. Landscape works best.</p>
   <button id="bStart">Start camera</button>
   <div id="err"></div>
 </div>
 
-<div class="sheet" id="setSheet"><div class="panel">
-  <h2>Setup <button class="btn" id="setClose">Done</button></h2>
-  <div class="row"><label>Camera</label><select id="sCam"></select></div>
-  <div class="row hide" id="cRow"><label>Sensor W × H mm</label><div class="grp" style="flex:1"><input type="number" id="cW" step="0.01" inputmode="decimal"><input type="number" id="cH" step="0.01" inputmode="decimal"></div></div>
-  <div class="row"><label>Focal length (mm)</label><input type="number" id="sFocal" step="0.5" min="1" inputmode="decimal"></div>
-  <div class="row"><label>Anamorphic squeeze</label><select id="sSq"></select></div>
-  <div class="row"><label>Frame aspect</label><select id="sAsp"></select></div>
-  <div class="row"><label>Phone lens</label><select id="sPh"></select></div>
-  <div class="row"><label>Phone lens (mm, full-frame equiv.)</label><input type="number" id="sPhEq" step="1" min="5" inputmode="decimal"></div>
-  <div class="row"><label>Phone camera</label><select id="sDev"></select></div>
-  <div class="row"><label>Preview quality</label><select id="sRes"><option value="1080">1080p</option><option value="2160">4K (if supported)</option></select></div>
-  <div class="row"><label>Rule of thirds</label><input type="checkbox" id="gThirds"></div>
-  <div class="row"><label>Center cross</label><input type="checkbox" id="gCenter"></div>
-  <div class="row"><label>Safe area (90%)</label><input type="checkbox" id="gSafe"></div>
-  <div class="row"><label>Fill screen with frame</label><input type="checkbox" id="gCrop"></div>
-  <p class="mut">Sensor sizes are approximate and depend on the recording mode, so check the manufacturer's spec for your exact format. Phone framing is an optical approximation: set "Phone lens" to the camera you are actually using (the 1&times; main camera is about 24&ndash;26mm equivalent on most phones).</p>
-</div></div>
-
-<div class="sheet" id="noteSheet"><div class="panel">
-  <h2>Save frame</h2>
-  <img id="prev" alt="Captured frame">
-  <div class="mut" id="prevMeta" style="margin-bottom:8px"></div>
-  <div class="row" style="border:0"><textarea id="noteIn" rows="2" placeholder="Note (blocking, subject, intent...)"></textarea></div>
-  <div class="grp" style="justify-content:flex-end;margin-top:8px">
-    <button class="btn" id="noteCancel">Discard</button>
-    <button class="btn" id="noteSave" style="background:var(--acc);color:#111;font-weight:600">Save</button>
-  </div>
-</div></div>
-
-<div class="sheet" id="galSheet"><div class="panel" style="top:0;max-height:100%;border-radius:0">
-  <h2>Saved frames <span class="grp"><button class="btn" id="bCsv">Export CSV</button><button class="btn" id="galClose">Close</button></span></h2>
-  <div id="gal"></div>
-</div></div>
+<div id="sheet"><div id="pgwrap"></div></div>
 
 <script>
 'use strict';
 const $ = s => document.querySelector(s);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const D2R = Math.PI / 180;
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+function h(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  if (props) for (const k in props) {
+    const v = props[k];
+    if (k === 'class') e.className = v;
+    else if (k === 'on') for (const ev in v) e.addEventListener(ev, v[ev]);
+    else if (k === 'text') e.textContent = v;
+    else if (k === 'html') e.innerHTML = v;
+    else if (v !== false && v != null) e.setAttribute(k, v);
+  }
+  for (const kid of kids.flat()) { if (kid == null || kid === false) continue; e.append(kid.nodeType ? kid : document.createTextNode(kid)); }
+  return e;
+}
 
-/* ---------- data ---------- */
+/* =====================  DATA  ===================== */
+const M = (n, w, h, res) => ({n, w, h, res: res || ''});
 const CAMERAS = [
-  {n:'ARRI Alexa 35 · 4K 3:2 Open Gate', w:27.99, h:19.22},
-  {n:'ARRI Alexa Mini LF · Open Gate',   w:36.70, h:25.54},
-  {n:'ARRI Alexa Mini · Open Gate',      w:28.25, h:18.17},
-  {n:'RED V-Raptor · 8K VV',             w:40.96, h:21.60},
-  {n:'RED Komodo · 6K',                  w:27.03, h:14.26},
-  {n:'Sony FX3 / FX6 / A7S III · 4K',    w:35.6,  h:20.0},
-  {n:'Canon C70 · 4K Super 35',          w:26.2,  h:13.8},
-  {n:'Blackmagic Pocket 6K',             w:23.10, h:12.99},
-  {n:'Blackmagic Pocket 4K',             w:18.96, h:10.0},
-  {n:'Super 35 (4-perf, full aperture)', w:24.89, h:18.66},
-  {n:'Full frame 36×24',                 w:36,    h:24},
-  {n:'Micro Four Thirds · 4K',           w:17.3,  h:9.7},
-  {n:'Super 16',                         w:12.52, h:7.41},
-  {n:'Custom…',                          w:0,     h:0}
+  {make:'ARRI', model:'ALEXA 35', modes:[M('4.6K 3:2 Open Gate',27.99,19.22,'4608×3164'), M('4K 16:9',24.88,14.00,'4096×2304'), M('4K 2.39:1',24.88,10.42,'4096×1716')]},
+  {make:'ARRI', model:'ALEXA LF', modes:[M('LF Open Gate 3:2',36.70,25.54,'4448×3096'), M('LF 16:9 3.8K',31.68,17.82,'3840×2160'), M('LF 2.39:1',36.70,15.31,'4448×1856')]},
+  {make:'ARRI', model:'ALEXA Mini LF', modes:[M('LF Open Gate 3:2',36.70,25.54,'4448×3096'), M('LF 16:9 3.8K',31.68,17.82,'3840×2160'), M('LF 2.39:1',36.70,15.31,'4448×1856')]},
+  {make:'ARRI', model:'ALEXA Mini', modes:[M('Open Gate 3.4K',28.25,18.17,'3424×2202'), M('16:9 UHD',26.40,14.85,'3200×1800'), M('16:9 2.8K',23.76,13.37,'2880×1620')]},
+  {make:'ARRI', model:'ALEXA 65', modes:[M('Open Gate 6.5K',54.12,25.58,'6560×3100')]},
+  {make:'ARRI', model:'416', modes:[M('Super 16',12.52,7.41)]},
+  {make:'RED', model:'V-RAPTOR', modes:[M('8K VV 17:9',40.96,21.60,'8192×4320'), M('6K S35 17:9',30.72,16.20,'6144×3240')]},
+  {make:'RED', model:'KOMODO', modes:[M('6K S35 17:9',27.03,14.26,'6144×3240')]},
+  {make:'RED', model:'MONSTRO 8K VV', modes:[M('8K VV 17:9',40.96,21.60,'8192×4320')]},
+  {make:'Sony', model:'VENICE 2', modes:[M('8.6K 3:2',35.9,24.0,'8640×5760')]},
+  {make:'Sony', model:'FX3 / FX6 / A7S III', modes:[M('4K 16:9 full frame',35.6,20.0,'3840×2160')]},
+  {make:'Sony', model:'FX9', modes:[M('6K 3:2 full frame',35.7,23.8)]},
+  {make:'Canon', model:'C70 / C300 III', modes:[M('4K 17:9 Super 35',26.2,13.8,'4096×2160')]},
+  {make:'Canon', model:'C500 Mark II', modes:[M('5.9K 17:9 full frame',38.1,20.1,'5952×3140')]},
+  {make:'Blackmagic', model:'Pocket Cinema 6K', modes:[M('6K 17:9',23.10,12.99,'6144×3456')]},
+  {make:'Blackmagic', model:'Pocket Cinema 4K', modes:[M('4K 17:9',18.96,10.00,'4096×2160')]},
+  {make:'Blackmagic', model:'URSA Mini Pro 12K', modes:[M('12K 17:9',27.03,14.25,'12288×6480')]},
+  {make:'Panasonic', model:'LUMIX S1H', modes:[M('6K 3:2 full frame',35.6,23.8)]},
+  {make:'Film', model:'35mm', modes:[M('Full aperture (4-perf)',24.89,18.66), M('Academy',22.0,16.0)]},
+  {make:'Film', model:'16mm', modes:[M('Super 16',12.52,7.41), M('Regular 16',10.26,7.49)]},
+  {make:'Film', model:'65mm / IMAX', modes:[M('65mm 5-perf',52.48,23.01), M('IMAX 15/70',70.41,52.63)]},
+  {make:'Generic', model:'Full frame', modes:[M('36 × 24 (3:2)',36,24), M('36 × 20.25 (16:9)',36,20.25)]},
+  {make:'Generic', model:'APS-C', modes:[M('23.6 × 15.7 (3:2)',23.6,15.7)]},
+  {make:'Generic', model:'Micro Four Thirds', modes:[M('17.3 × 13 (4:3)',17.3,13), M('17.3 × 9.73 (16:9)',17.3,9.73)]},
+  {make:'Generic', model:'1-inch', modes:[M('13.2 × 8.8 (3:2)',13.2,8.8)]}
 ];
-const ASPECTS = [
-  {n:'Sensor native', a:null},
-  {n:'2.39:1', a:2.39}, {n:'2.00:1', a:2.0}, {n:'1.85:1', a:1.85},
-  {n:'16:9', a:16/9}, {n:'3:2', a:1.5}, {n:'4:3', a:4/3}, {n:'1:1', a:1},
-  {n:'4:5', a:0.8}, {n:'9:16', a:9/16}
+const P = (make, name, t, cov, f, x) => Object.assign({make, name, t, cov, f, zoom:null, sq:1}, x || {});
+const Z = (make, name, t, cov, lo, hi, x) => Object.assign({make, name, t, cov, f:null, zoom:[lo,hi], sq:1}, x || {});
+const LENSES = [
+  P('ARRI','Signature Prime','T1.8','LF',[12,15,18,21,25,29,35,40,47,58,75,95,125,150,200,280]),
+  P('ARRI','Enso Prime','T2.1','LF',[10.5,14,18,21,24,28,32,40,50,65,85,100,135],{approx:1}),
+  P('ARRI','Master Prime','T1.3','S35',[12,14,16,18,21,25,27,32,35,40,50,65,75,100,135,150]),
+  Z('ARRI','Ultra Wide Zoom','T2.9','S35',9.5,18),
+  Z('ARRI','Anamorphic Ultra Wide Zoom','T4.2','S35',19,36,{sq:2}),
+  Z('ARRI','Alura Zoom 15.5–45','T2.8','S35',15.5,45),
+  Z('ARRI','Alura Zoom 45–250','T2.6','S35',45,250),
+  P('Zeiss','Supreme Prime','T1.5','FF',[15,18,21,25,29,35,40,50,65,85,100,135,150,200]),
+  P('Zeiss','CP.3','T2.1','FF',[15,18,21,25,28,35,50,85,100,135]),
+  P('Cooke','S4/i','T2','S35',[12,14,16,18,21,25,27,32,35,40,50,65,75,100,135,150]),
+  P('Cooke','S7/i','T2','FF',[16,18,21,25,27,32,40,50,65,75,100,135,180,300]),
+  P('Cooke','Panchro/i Classic','T2.2','S35',[18,25,32,40,50,65,75,100,135]),
+  P('Cooke','Anamorphic/i','T2.3','S35',[25,32,40,50,65,75,100,135,180,300],{sq:2}),
+  P('Canon','CN-E Prime','T1.5','S35',[14,20,24,35,50,85,135],{approx:1}),
+  P('Canon','Sumire Prime','T1.3','FF',[14,20,24,35,50,85,135],{approx:1}),
+  P('Sigma','Cine FF High Speed','T1.5','FF',[14,20,24,28,35,40,50,65,85,105,135],{approx:1}),
+  P('Leica','Summilux-C','T1.4','S35',[16,18,21,25,29,35,40,50,65,75,100,135],{approx:1}),
+  P('Atlas','Orion Anamorphic','T2','S35',[21,25,32,40,50,65,80,100,135],{sq:2,approx:1}),
+  Z('Angénieux','Optimo 15–40','T2.6','S35',15,40),
+  Z('Angénieux','Optimo 28–76','T2.6','S35',28,76),
+  Z('Angénieux','Optimo 45–120','T2.8','S35',45,120),
+  Z('Angénieux','Optimo 24–290','T2.8','S35',24,290),
+  Z('Angénieux','EZ-1 30–90','T2','S35',30,90),
+  Z('Angénieux','EZ-2 15–40','T2','S35',15,40),
+  P('Generic','Prime set','T2','FF',[14,16,18,21,24,25,28,32,35,40,50,65,75,85,100,135,150,200]),
+  P('Generic','Anamorphic 2× set','T2.8','S35',[25,35,40,50,75,100],{sq:2}),
+  Z('Generic','Zoom 24–70','T2.8','FF',24,70),
+  Z('Generic','Zoom 70–200','T2.8','FF',70,200)
 ];
-const LENSES  = [14,16,18,21,24,25,27,29,32,35,40,50,65,75,85,100,135,150,200];
-const SQUEEZE = [1,1.3,1.5,1.8,2];
-const PHONE   = [
-  {n:'0.5× ultrawide (~13mm)', eq:13},
-  {n:'1× main (~26mm)',        eq:26},
-  {n:'2× (~52mm)',             eq:52},
-  {n:'3× (~77mm)',             eq:77},
-  {n:'5× (~120mm)',            eq:120},
-  {n:'Custom',                 eq:0}
+LENSES.forEach(l => l.id = (l.make + '-' + l.name).toLowerCase().replace(/[^a-z0-9]+/g, '-'));
+const ADAPTERS = [
+  {n:'None', f:1, d:'Nothing between the lens and the body'},
+  {n:'Speed Booster 0.50×', f:0.50}, {n:'Speed Booster 0.58×', f:0.58},
+  {n:'Speed Booster XL 0.64×', f:0.64}, {n:'Speed Booster Ultra 0.71×', f:0.71},
+  {n:'Teleconverter 1.4×', f:1.4}, {n:'Teleconverter 2×', f:2}
 ];
+const adStops = a => -2 * Math.log2(a.f);
+const FLS = [{n:'Off', a:0}, {n:'2.39:1', a:2.39}, {n:'2.00:1', a:2}, {n:'1.85:1', a:1.85}, {n:'16:9', a:16/9}, {n:'1.66:1', a:1.66},
+             {n:'4:3', a:4/3}, {n:'1:1', a:1}, {n:'4:5', a:0.8}, {n:'9:16', a:9/16}];
 
-const DEF = {cam:0, focal:35, squeeze:1, aspect:0, phoneEq:26, thirds:true, center:false,
-             safe:false, crop:false, deviceId:'', res:1080, cw:24.9, ch:13.1};
-let state = Object.assign({}, DEF);
-try { Object.assign(state, JSON.parse(localStorage.getItem('vf') || '{}')); } catch(e) {}
-const save = () => { try { localStorage.setItem('vf', JSON.stringify(state)); } catch(e) {} };
+/* =====================  STATE  ===================== */
+const DEF = {camMake:'ARRI', camModel:'ALEXA LF', modeIdx:0, lensId:'arri-signature-prime', focal:35, adapter:0,
+  fl:0, flc:0, center:true, thirds:false, horizon:false, safe:0, mask:0.85, line:1,
+  auto:true, res:'std', calib:{}};
+let S = Object.assign({}, DEF, store.get('vf2', {}));
+let customCams = store.get('vf2cams', []);
+let customLens = store.get('vf2lens', []);
+let savedRigs = store.get('vf2rigs', []);
+let recents = store.get('vf2recent', []);
+const saveS = () => store.set('vf2', S);
 
-/* ---------- geometry ---------- */
+const allCams = () => CAMERAS.concat(customCams);
+const allLens = () => LENSES.concat(customLens);
+function rig() {
+  const cams = allCams();
+  const cam = cams.find(c => c.make === S.camMake && c.model === S.camModel) || cams[1];
+  const mode = cam.modes[clamp(S.modeIdx | 0, 0, cam.modes.length - 1)];
+  const lens = allLens().find(l => l.id === S.lensId) || LENSES[0];
+  const ad = ADAPTERS[clamp(S.adapter | 0, 0, ADAPTERS.length - 1)];
+  let f = +S.focal;
+  if (lens.zoom) f = clamp(f, lens.zoom[0], lens.zoom[1]);
+  else if (!lens.f.includes(f)) f = lens.f.reduce((a, b) => Math.abs(b - f) < Math.abs(a - f) ? b : a);
+  return {cam, mode, lens, ad, f, sq: lens.sq || 1};
+}
+function tLabel(r) {
+  const n = parseFloat((r.lens.t || '').replace(/[^0-9.]/g, ''));
+  return n ? 'T' + (n * r.ad.f).toFixed(1).replace(/\.0$/, '') : '';
+}
+const fmtF = f => (Math.round(f * 10) / 10).toString();
+
+/* =====================  GEOMETRY  ===================== */
 const video = $('#v');
-
-function camSize() {
-  const c = CAMERAS[state.cam] || CAMERAS[0];
-  return c.w ? {w:c.w, h:c.h} : {w:+state.cw || 24.9, h:+state.ch || 13.1};
-}
-function aspectLabel(g) { return ASPECTS[state.aspect].a ? ASPECTS[state.aspect].n : g.aspect.toFixed(2) + ':1'; }
-
 function geom() {
-  const {w, h} = camSize(), sq = +state.squeeze || 1, f = Math.max(1, +state.focal || 35);
-  const aspect = ASPECTS[state.aspect].a || (w * sq) / h;
-  const tanT = (w * sq) / (2 * f);                       // tan of half horizontal FOV of the target lens
-  const hfov = 2 * Math.atan(tanT) * 180 / Math.PI;
-  const vfov = 2 * Math.atan(tanT / aspect) * 180 / Math.PI;
-  const vw = video.videoWidth || 1600, vh = video.videoHeight || 900, a = vw / vh;
-  const wEq = 43.27 * a / Math.sqrt(1 + a * a);          // full-frame-equivalent width for this video aspect
-  const tanP = wEq / (2 * Math.max(5, +state.phoneEq || 26));
-  let frac = tanT / tanP, warn = '';
-  if (frac > 1) { frac = 1; warn = 'Wider than the phone lens (' + state.phoneEq + 'mm eq). Use a wider phone camera or step back.'; }
-  let rw = frac * vw, rh = rw / aspect;
-  if (rh > vh) { rh = vh; rw = rh * aspect; warn = warn || 'Frame is taller than the phone view, so it shows a narrower field than the real lens.'; }
-  return {aspect, hfov, vfov, rw, rh, rx:(vw - rw) / 2, ry:(vh - rh) / 2, vw, vh, warn, w, h, sq, f};
+  const r = rig(), w = r.mode.w, hh = r.mode.h, sq = r.sq, fe = r.f * r.ad.f;
+  const tanT = (w * sq) / (2 * fe);
+  const aS = (w * sq) / hh;
+  return {r, tanT, aS, fe, hfov: 2 * Math.atan(tanT) / D2R, vfov: 2 * Math.atan(tanT / aS) / D2R,
+          flA: S.fl ? S.fl : aS};
 }
+const defHfov = label => {
+  const l = (label || '').toLowerCase();
+  const eq = /ultra/.test(l) ? 13 : /tele/.test(l) ? 77 : 26;
+  return 2 * Math.atan(34.6 / (2 * eq)) / D2R;
+};
+let cams = [];               // rear phone cameras: {id,label,hfov}
+let activeId = '';
+let curZoom = 1, zcaps = null, track = null, stream = null;
+const camHfov = c => (S.calib[c.id] || defHfov(c.label));
+const activeCam = () => cams.find(c => c.id === activeId) || cams[0] || {id:'', label:'', hfov:defHfov('')};
+const phoneTan0 = () => Math.tan(camHfov(activeCam()) * D2R / 2);
 
-/* ---------- render ---------- */
+/* =====================  RENDER  ===================== */
 const cv = $('#cv'), ctx = cv.getContext('2d');
 function resize() { const d = devicePixelRatio || 1; cv.width = Math.round(innerWidth * d); cv.height = Math.round(innerHeight * d); }
 addEventListener('resize', resize); resize();
+let calibMode = false, roll = null, lastHud = '', flBox = null, warnTxt = '';
 
-let lastHud = '';
+function layout() {
+  const d = devicePixelRatio || 1, port = innerHeight > innerWidth;
+  const top = 52, bottom = port ? 150 : 62, right = port ? 0 : 84;
+  return {x:12 * d, y:top * d, w:cv.width - (12 + right + (port ? 12 : 0)) * d, h:cv.height - (top + bottom) * d};
+}
 function draw() {
   requestAnimationFrame(draw);
   const W = cv.width, H = cv.height, d = devicePixelRatio || 1;
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
   if (!video.videoWidth) return;
-  const g = geom();
-  let box;
-  if (state.crop) {
-    const s = Math.min(W / g.rw, H / g.rh) * 0.96;
-    box = {w: g.rw * s, h: g.rh * s}; box.x = (W - box.w) / 2; box.y = (H - box.h) / 2;
-    ctx.drawImage(video, g.rx, g.ry, g.rw, g.rh, box.x, box.y, box.w, box.h);
-  } else {
-    const s = Math.min(W / g.vw, H / g.vh), dw = g.vw * s, dh = g.vh * s, dx = (W - dw) / 2, dy = (H - dh) / 2;
+  const vw = video.videoWidth, vh = video.videoHeight;
+  if (calibMode) {                                    // raw full-field view for calibration
+    const land = innerWidth > innerHeight, pw = land ? Math.min(innerWidth * 0.48, 460) * d : 0;
+    const aw = W - pw, ah = land ? H - 16 * d : H * 0.45;
+    const s = Math.min(aw / vw, ah / vh), dw = vw * s, dh = vh * s, dx = (aw - dw) / 2, dy = 8 * d;
     ctx.drawImage(video, dx, dy, dw, dh);
-    box = {x: dx + g.rx * s, y: dy + g.ry * s, w: g.rw * s, h: g.rh * s};
-    ctx.fillStyle = 'rgba(0,0,0,.62)'; ctx.beginPath();
-    ctx.rect(dx, dy, dw, dh); ctx.rect(box.x, box.y, box.w, box.h); ctx.fill('evenodd');
+    ctx.strokeStyle = 'rgba(255,179,0,.9)'; ctx.lineWidth = 2 * d;
+    ctx.beginPath(); ctx.moveTo(dx, dy); ctx.lineTo(dx, dy + dh); ctx.moveTo(dx + dw, dy); ctx.lineTo(dx + dw, dy + dh); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.45)'; ctx.lineWidth = d;
+    ctx.beginPath(); ctx.moveTo(dx + dw / 2, dy); ctx.lineTo(dx + dw / 2, dy + dh); ctx.moveTo(dx, dy + dh / 2); ctx.lineTo(dx + dw, dy + dh / 2); ctx.stroke();
+    return;
   }
-  ctx.lineWidth = 2 * d; ctx.strokeStyle = '#ffb300'; ctx.strokeRect(box.x, box.y, box.w, box.h);
-  ctx.lineWidth = d; ctx.strokeStyle = 'rgba(255,255,255,.55)';
-  const line = (x1, y1, x2, y2) => { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); };
-  if (state.thirds) for (let i = 1; i < 3; i++) {
-    line(box.x + box.w * i / 3, box.y, box.x + box.w * i / 3, box.y + box.h);
-    line(box.x, box.y + box.h * i / 3, box.x + box.w, box.y + box.h * i / 3);
+  const g = geom();
+  const L = layout();
+  let fw = L.w, fh = fw / g.aS;
+  if (fh > L.h) { fh = L.h; fw = fh * g.aS; }
+  const fx = L.x + (L.w - fw) / 2, fy = L.y + (L.h - fh) / 2;
+  const px = fw / (2 * g.tanT);                         // screen px per unit of tan(angle)
+  const tanP = phoneTan0() / curZoom;                   // what the phone is showing right now
+  const vws = 2 * tanP * px, vhs = vws * vh / vw;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(fx, fy, fw, fh); ctx.clip();
+  ctx.drawImage(video, fx + fw / 2 - vws / 2, fy + fh / 2 - vhs / 2, vws, vhs);
+  ctx.restore();
+  const covW = Math.min(1, vws / fw), covH = Math.min(1, vhs / fh);
+  const need = phoneTan0() / g.tanT;                    // total zoom needed relative to the phone camera
+  // frameline box inside the sensor frame
+  let bw = fw, bh = fh;
+  if (S.fl) { if (g.flA >= g.aS) { bw = fw; bh = fw / g.flA; } else { bh = fh; bw = fh * g.flA; } }
+  const bx = fx + (fw - bw) / 2, by = fy + (fh - bh) / 2;
+  flBox = {bx, by, bw, bh, fw, fh, g};
+  if (S.fl) {
+    ctx.fillStyle = 'rgba(0,0,0,' + S.mask + ')';
+    ctx.beginPath(); ctx.rect(fx, fy, fw, fh); ctx.rect(bx, by, bw, bh); ctx.fill('evenodd');
   }
-  if (state.center) {
-    const cx = box.x + box.w / 2, cy = box.y + box.h / 2, k = 14 * d;
-    line(cx - k, cy, cx + k, cy); line(cx, cy - k, cx, cy + k);
+  const lw = (S.line === 2 ? 2.2 : 1.1) * d;
+  ctx.lineWidth = lw; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.strokeRect(bx, by, bw, bh);
+  ctx.strokeStyle = 'rgba(255,179,0,.55)'; ctx.lineWidth = d; ctx.strokeRect(fx, fy, fw, fh);
+  ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = lw * .8;
+  const ln = (x1, y1, x2, y2) => { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); };
+  if (S.thirds) for (let i = 1; i < 3; i++) { ln(bx + bw * i / 3, by, bx + bw * i / 3, by + bh); ln(bx, by + bh * i / 3, bx + bw, by + bh * i / 3); }
+  const cx = bx + bw / 2, cy = by + bh / 2;
+  if (S.center) { const k = 12 * d; ln(cx - k, cy, cx + k, cy); ln(cx, cy - k, cx, cy + k); }
+  if (S.safe) {
+    const k = S.safe / 100; ctx.setLineDash([6 * d, 6 * d]);
+    ctx.strokeRect(bx + bw * (1 - k) / 2, by + bh * (1 - k) / 2, bw * k, bh * k); ctx.setLineDash([]);
   }
-  if (state.safe) {
-    ctx.setLineDash([6 * d, 6 * d]);
-    ctx.strokeRect(box.x + box.w * .05, box.y + box.h * .05, box.w * .9, box.h * .9);
-    ctx.setLineDash([]);
+  if (S.horizon && roll != null) {
+    const len = Math.min(bw, bh) * 0.45, c = Math.cos(roll), s = Math.sin(roll), lvl = Math.abs(roll) < 0.6 * D2R;
+    ctx.strokeStyle = lvl ? '#34c759' : 'rgba(255,179,0,.95)'; ctx.lineWidth = 2 * d;
+    ln(cx - len * c, cy + len * s, cx + len * c, cy - len * s);
+    ctx.fillStyle = ctx.strokeStyle; ctx.font = (12 * d) + 'px monospace';
+    ctx.textAlign = 'center'; ctx.fillText((roll / D2R).toFixed(1) + '°', cx, cy - 10 * d);
   }
-  const cam = CAMERAS[state.cam];
-  const hud = '<b>' + fmtLens(g) + '</b> · ' + g.hfov.toFixed(1) + '° H · ' + g.vfov.toFixed(1) + '° V|' +
-              cam.n + '<br>' + aspectLabel(g) + '|' + g.warn;
+  // warnings + HUD
+  let w = '';
+  if (covW < 0.995) w = 'Wider than the phone camera can see (showing ' + Math.round(covW * 100) + '% of the width)';
+  else if (covH < 0.995) w = 'Phone view is not tall enough for this frame: black bars top and bottom';
+  else if (need > 1.02 && !(zcaps && curZoom > 1.02)) w = 'Digital zoom ×' + need.toFixed(1) + ' (image gets softer)';
+  const r = g.r, ac = activeCam();
+  const hud = ['<b>' + fmtF(r.f) + 'mm</b> ' + tLabel(r) + (r.ad.f !== 1 ? ' <span class="d">eff. ' + fmtF(g.fe) + 'mm</span>' : '') +
+      '<div class="d">' + r.cam.model + ' · ' + r.mode.n + '</div>',
+    '<span class="d">H ' + g.hfov.toFixed(1) + '° · V ' + g.vfov.toFixed(1) + '°</span><div class="d">' + r.lens.make + ' ' + r.lens.name +
+      (r.sq !== 1 ? ' ' + r.sq + '×' : '') + '</div><div class="d">' + (cams.length > 1 ? ac.label.replace(/^back /i, '') + ' · ' : '') + 'zoom ×' + need.toFixed(2) + '</div>', w].join('|');
   if (hud !== lastHud) {
-    lastHud = hud;
-    const p = hud.split('|');
+    lastHud = hud; const p = hud.split('|');
     $('#hl').innerHTML = p[0]; $('#hr').innerHTML = p[1];
-    const w = $('#warn'); w.textContent = p[2]; w.style.display = p[2] ? 'block' : 'none';
-    $('#lens').textContent = fmtLens(g);
+    warnTxt = p[2]; const wn = $('#warn'); wn.textContent = warnTxt; wn.style.display = warnTxt ? 'block' : 'none';
+  }
+  scheduleHardware(g);
+}
+
+/* =====================  CAMERA  ===================== */
+let zoomBusy = false, switchTimer = 0, lastZ = 0;
+function scheduleHardware(g) {
+  if (calibMode || zoomBusy) return;
+  // pick the best phone camera
+  if (S.auto && cams.length > 1) {
+    const sorted = cams.slice().sort((a, b) => camHfov(a) - camHfov(b));
+    let best = sorted.find(c => camHfov(c) >= g.hfov * 0.999) || sorted[sorted.length - 1];
+    if (best.id !== activeId) {
+      if (!switchTimer) switchTimer = setTimeout(() => { switchTimer = 0; startCam(best.id); }, 500);
+      return;
+    } else if (switchTimer) { clearTimeout(switchTimer); switchTimer = 0; }
+  }
+  if (zcaps && track) {
+    const zt = clamp(phoneTan0() / g.tanT, zcaps.min, zcaps.max);
+    if (Math.abs(zt - curZoom) / curZoom > 0.015 && Math.abs(zt - lastZ) > 1e-4) {
+      zoomBusy = true; lastZ = zt;
+      track.applyConstraints({advanced:[{zoom:zt}]}).then(() => {
+        const st = track.getSettings ? track.getSettings() : {}; curZoom = st.zoom || zt;
+      }).catch(() => { zcaps = null; }).finally(() => { zoomBusy = false; });
+    }
   }
 }
-function fmtLens(g) { return (+state.focal) + 'mm' + (g.sq !== 1 ? ' ' + g.sq + '×' : ''); }
-
-/* ---------- camera ---------- */
-let stream = null;
 async function startCam(deviceId) {
   $('#err').textContent = '';
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    $('#err').textContent = 'Camera access needs HTTPS (or localhost). Open the hosted link, not a file.'; return false;
-  }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { $('#err').textContent = 'Camera access needs HTTPS (or localhost). Open the hosted link, not a file.'; return false; }
   if (stream) stream.getTracks().forEach(t => t.stop());
-  const hd = +state.res === 2160 ? {width:{ideal:3840}, height:{ideal:2160}} : {width:{ideal:1920}, height:{ideal:1080}};
-  const video_c = deviceId ? Object.assign({deviceId:{exact:deviceId}}, hd) : Object.assign({facingMode:{ideal:'environment'}}, hd);
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({audio:false, video:video_c});
-  } catch (e) {
-    if (deviceId) { state.deviceId = ''; save(); return startCam(''); }
+  const hi = S.res === 'high';
+  const hd = hi ? {width:{ideal:4032}, height:{ideal:3024}} : {width:{ideal:1920}, height:{ideal:1440}};
+  const vc = deviceId ? Object.assign({deviceId:{exact:deviceId}}, hd) : Object.assign({facingMode:{ideal:'environment'}}, hd);
+  try { stream = await navigator.mediaDevices.getUserMedia({audio:false, video:vc}); }
+  catch (e) {
+    if (deviceId) return startCam('');
     $('#err').textContent = 'Could not open the camera (' + (e.name || 'error') + '). Allow camera access in your browser and try again.';
     $('#start').classList.remove('hide'); return false;
   }
-  video.srcObject = stream;
-  try { await video.play(); } catch (e) {}
+  track = stream.getVideoTracks()[0];
+  video.srcObject = stream; try { await video.play(); } catch (e) {}
+  const st = track.getSettings ? track.getSettings() : {};
+  activeId = st.deviceId || deviceId || '';
+  let caps = {}; try { caps = track.getCapabilities ? track.getCapabilities() : {}; } catch (e) {}
+  zcaps = caps.zoom && caps.zoom.max > caps.zoom.min ? {min:caps.zoom.min, max:caps.zoom.max} : null;
+  curZoom = st.zoom || 1; lastZ = 0;
   $('#start').classList.add('hide');
-  try { const dv = (await navigator.mediaDevices.enumerateDevices()).filter(x => x.kind === 'videoinput'); fillDevices(dv); } catch (e) {}
+  try {
+    const dv = (await navigator.mediaDevices.enumerateDevices()).filter(x => x.kind === 'videoinput');
+    let rear = dv.filter(x => !/front|user|selfie/i.test(x.label));
+    const real = rear.filter(x => !/dual|triple|virtual/i.test(x.label));
+    if (real.length) rear = real;
+    cams = rear.map((x, i) => ({id:x.deviceId, label:x.label || ('Camera ' + (i + 1))}));
+    if (!cams.find(c => c.id === activeId) && cams.length) activeId = cams[0].id;
+  } catch (e) {}
   try { if ('wakeLock' in navigator) await navigator.wakeLock.request('screen'); } catch (e) {}
   return true;
 }
-function fillDevices(list) {
-  const s = $('#sDev'); s.innerHTML = '';
-  const cur = stream && stream.getVideoTracks()[0] ? stream.getVideoTracks()[0].getSettings().deviceId : '';
-  list.forEach((d, i) => {
-    const o = document.createElement('option'); o.value = d.deviceId; o.textContent = d.label || ('Camera ' + (i + 1));
-    if (d.deviceId === cur) o.selected = true; s.appendChild(o);
-  });
-}
-$('#bStart').onclick = () => startCam(state.deviceId);
+$('#bStart').onclick = () => startCam('');
+document.addEventListener('visibilitychange', async () => { if (!document.hidden) { try { if ('wakeLock' in navigator && stream) await navigator.wakeLock.request('screen'); } catch (e) {} } });
 
-/* ---------- storage (IndexedDB) ---------- */
+/* horizon sensor */
+function onOri(e) {
+  if (e.beta == null || e.gamma == null) return;
+  const b = e.beta * D2R, gm = e.gamma * D2R, dx = Math.sin(gm) * Math.cos(b), dy = -Math.sin(b);
+  const ang = ((screen.orientation ? screen.orientation.angle : (window.orientation || 0)) % 360 + 360) % 360;
+  let u, v;
+  if (ang === 90) { u = -dy; v = dx; } else if (ang === 180) { u = -dx; v = -dy; } else if (ang === 270) { u = dy; v = -dx; } else { u = dx; v = dy; }
+  roll = Math.atan2(u, -v);
+}
+async function enableHorizon() {
+  try {
+    if (typeof DeviceOrientationEvent !== 'undefined' && DeviceOrientationEvent.requestPermission) {
+      const r = await DeviceOrientationEvent.requestPermission(); if (r !== 'granted') { S.horizon = false; saveS(); return; }
+    }
+    removeEventListener('deviceorientation', onOri); addEventListener('deviceorientation', onOri);
+  } catch (e) { S.horizon = false; saveS(); }
+}
+
+/* =====================  STORAGE (stills)  ===================== */
 const DB = new Promise((res, rej) => {
   const r = indexedDB.open('vf', 1);
   r.onupgradeneeded = () => r.result.createObjectStore('shots', {keyPath:'id', autoIncrement:true});
@@ -274,138 +455,306 @@ const DB = new Promise((res, rej) => {
 });
 async function tx(mode, fn) {
   const db = await DB;
-  return new Promise((res, rej) => {
-    const t = db.transaction('shots', mode), r = fn(t.objectStore('shots'));
-    t.oncomplete = () => res(r && r.result); t.onerror = () => rej(t.error);
-  });
+  return new Promise((res, rej) => { const t = db.transaction('shots', mode), r = fn(t.objectStore('shots')); t.oncomplete = () => res(r && r.result); t.onerror = () => rej(t.error); });
 }
-
-/* ---------- capture ---------- */
-let pending = null, prevUrl = null;
-function grab() {
-  const g = geom(), c = document.createElement('canvas');
-  c.width = Math.round(g.rw); c.height = Math.round(g.rh);
-  c.getContext('2d').drawImage(video, g.rx, g.ry, g.rw, g.rh, 0, 0, c.width, c.height);
-  return new Promise(res => c.toBlob(b => res({blob:b, g}), 'image/jpeg', 0.92));
-}
-$('#shutter').onclick = async () => {
-  if (!video.videoWidth) return;
-  const {blob, g} = await grab();
-  pending = {ts:Date.now(), blob, note:'', cam:CAMERAS[state.cam].n, focal:+state.focal, squeeze:g.sq,
-             aspect:aspectLabel(g), hfov:+g.hfov.toFixed(2), vfov:+g.vfov.toFixed(2), phoneEq:+state.phoneEq};
-  if (prevUrl) URL.revokeObjectURL(prevUrl);
-  prevUrl = URL.createObjectURL(blob); $('#prev').src = prevUrl;
-  $('#prevMeta').textContent = metaStr(pending); $('#noteIn').value = '';
-  $('#noteSheet').classList.add('open'); $('#noteIn').focus();
-};
-$('#noteSave').onclick = async () => {
-  if (!pending) return; pending.note = $('#noteIn').value.trim();
-  await tx('readwrite', s => s.add(pending)); pending = null; $('#noteSheet').classList.remove('open');
-};
-$('#noteCancel').onclick = () => { pending = null; $('#noteSheet').classList.remove('open'); };
-
-const metaStr = r => r.focal + 'mm' + (r.squeeze !== 1 ? ' ' + r.squeeze + '× anamorphic' : '') + ' · ' + r.cam + ' · ' + r.aspect + ' · ' + r.hfov + '° H';
-const pad = n => String(n).padStart(2, '0');
-function fname(r) {
-  const t = new Date(r.ts);
-  return 'frame_' + t.getFullYear() + pad(t.getMonth() + 1) + pad(t.getDate()) + '_' + pad(t.getHours()) + pad(t.getMinutes()) + pad(t.getSeconds()) + '_' + r.focal + 'mm.jpg';
-}
-function download(blob, name) {
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-}
+const metaStr = r => r.desc || ((r.focal || '') + 'mm · ' + (r.cam || '') + ' · ' + (r.aspect || '') + (r.hfov ? ' · ' + r.hfov + '° H' : ''));
+const pad2 = n => String(n).padStart(2, '0');
+function fname(r) { const t = new Date(r.ts); return 'frame_' + t.getFullYear() + pad2(t.getMonth() + 1) + pad2(t.getDate()) + '_' + pad2(t.getHours()) + pad2(t.getMinutes()) + pad2(t.getSeconds()) + '_' + r.focal + 'mm.jpg'; }
+function download(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
 async function shareOrSave(r) {
   const file = new File([r.blob], fname(r), {type:'image/jpeg'});
-  try {
-    if (navigator.canShare && navigator.canShare({files:[file]})) { await navigator.share({files:[file], text:metaStr(r) + (r.note ? ' — ' + r.note : '')}); return; }
-  } catch (e) { if (e.name === 'AbortError') return; }
+  try { if (navigator.canShare && navigator.canShare({files:[file]})) { await navigator.share({files:[file], text:metaStr(r) + (r.note ? ' — ' + r.note : '')}); return; } }
+  catch (e) { if (e.name === 'AbortError') return; }
   download(r.blob, fname(r));
 }
-
-/* ---------- gallery ---------- */
-let galUrls = [];
-async function renderGallery() {
-  galUrls.forEach(u => URL.revokeObjectURL(u)); galUrls = [];
-  const list = ((await tx('readonly', s => s.getAll())) || []).reverse();
-  const box = $('#gal'); box.innerHTML = '';
-  if (!list.length) { const p = document.createElement('p'); p.className = 'mut'; p.textContent = 'No frames saved yet.'; box.appendChild(p); return; }
-  for (const r of list) {
-    const url = URL.createObjectURL(r.blob); galUrls.push(url);
-    const c = document.createElement('div'); c.className = 'card';
-    const im = document.createElement('img'); im.src = url; im.alt = 'Saved frame'; c.appendChild(im);
-    const t = document.createElement('div'); t.className = 't';
-    t.textContent = new Date(r.ts).toLocaleString() + ' · ' + metaStr(r);
-    const n = document.createElement('div'); n.className = 'n'; n.textContent = r.note || ''; t.appendChild(n); c.appendChild(t);
-    const a = document.createElement('div'); a.className = 'a';
-    const mk = (label, fn) => { const b = document.createElement('button'); b.textContent = label; b.onclick = fn; a.appendChild(b); };
-    mk('Save / share', () => shareOrSave(r));
-    mk('Note', async () => { const v = prompt('Note for this frame', r.note || ''); if (v === null) return; r.note = v.trim(); await tx('readwrite', s => s.put(r)); renderGallery(); });
-    mk('Delete', async () => { if (!confirm('Delete this frame?')) return; await tx('readwrite', s => s.delete(r.id)); renderGallery(); });
-    c.appendChild(a); box.appendChild(c);
-  }
+function grab() {
+  if (!flBox) return null;
+  const {g} = flBox, vw = video.videoWidth, vh = video.videoHeight;
+  const tanP = phoneTan0() / curZoom, perTan = vw / (2 * tanP);       // video px per unit tan
+  let dw = (flBox.bw / flBox.fw) * 2 * g.tanT * perTan, dh = dw / g.flA;
+  const sc = Math.min(1, 3200 / dw); const c = document.createElement('canvas');
+  c.width = Math.max(2, Math.round(dw * sc)); c.height = Math.max(2, Math.round(dh * sc));
+  const x = c.getContext('2d'); x.fillStyle = '#000'; x.fillRect(0, 0, c.width, c.height);
+  x.drawImage(video, (dw - vw) / 2 * sc, (dh - vh) / 2 * sc, vw * sc, vh * sc);
+  return new Promise(res => c.toBlob(b => res(b), 'image/jpeg', 0.92));
 }
-$('#bGal').onclick = async () => { $('#galSheet').classList.add('open'); await renderGallery(); };
-$('#galClose').onclick = () => $('#galSheet').classList.remove('open');
-$('#bCsv').onclick = async () => {
-  const list = (await tx('readonly', s => s.getAll())) || [];
-  const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-  const rows = [['time','file','focal_mm','squeeze','camera','aspect','hfov_deg','vfov_deg','phone_lens_eq_mm','note'].join(',')];
-  list.forEach(r => rows.push([new Date(r.ts).toISOString(), fname(r), r.focal, r.squeeze, r.cam, r.aspect, r.hfov, r.vfov, r.phoneEq, r.note].map(q).join(',')));
-  download(new Blob([rows.join('\n')], {type:'text/csv'}), 'viewfinder_frames.csv');
+let pending = null, prevUrl = null;
+$('#shutter').onclick = async () => {
+  if (!video.videoWidth) return;
+  const blob = await grab(); if (!blob) return;
+  const g = geom(), r = g.r, fl = S.fl ? (FLS.find(f => Math.abs(f.a - S.fl) < 1e-6) || {n:S.fl.toFixed(2) + ':1'}).n : 'Sensor ' + g.aS.toFixed(2) + ':1';
+  const desc = fmtF(r.f) + 'mm' + (r.ad.f !== 1 ? ' (eff ' + fmtF(g.fe) + 'mm, ' + r.ad.n + ')' : '') + ' ' + tLabel(r) + ' · ' + r.lens.make + ' ' + r.lens.name + (r.sq !== 1 ? ' ' + r.sq + '×' : '') +
+    ' · ' + r.cam.make + ' ' + r.cam.model + ' ' + r.mode.n + ' · ' + fl + ' · ' + g.hfov.toFixed(1) + '° H';
+  pending = {ts:Date.now(), blob, note:'', desc, focal:fmtF(r.f), eff:+g.fe.toFixed(1), lens:r.lens.make + ' ' + r.lens.name, squeeze:r.sq, t:tLabel(r),
+    cam:r.cam.make + ' ' + r.cam.model, mode:r.mode.n, adapter:r.ad.n, aspect:fl, hfov:+g.hfov.toFixed(2), vfov:+g.vfov.toFixed(2)};
+  openPage(notePage);
 };
 
-/* ---------- lens stepping ---------- */
-function stepLens(dir) {
-  const f = +state.focal;
-  if (dir > 0) state.focal = LENSES.find(v => v > f + 1e-6) || LENSES[LENSES.length - 1];
-  else state.focal = LENSES.filter(v => v < f - 1e-6).pop() || LENSES[0];
-  save(); syncUI();
+/* =====================  PAGES  ===================== */
+const sheet = $('#sheet'), wrap = $('#pgwrap');
+function openPage(fn, clear) {
+  if (fn !== calibPage) calibMode = false;
+  document.body.classList.toggle('cal', !!clear); lastHud = '';
+  sheet.classList.toggle('clear', !!clear); sheet.classList.add('open'); sheet.scrollTop = 0;
+  wrap.replaceChildren(fn());
 }
-$('#bPlus').onclick = () => stepLens(1);
-$('#bMinus').onclick = () => stepLens(-1);
+function closeSheet() { sheet.classList.remove('open'); document.body.classList.remove('cal'); calibMode = false; lastHud = ''; }
+const head = (title, back, backFn, rightLabel, rightFn) => h('div', {class:'ttl-row'},
+  back ? h('button', {class:'back', on:{click:backFn}, text:'‹ ' + back}) : h('span'), h('h1', {text:title}),
+  rightLabel ? h('button', {class:'hbtn', text:rightLabel, on:{click:rightFn}}) : h('span'));
 
-/* ---------- settings UI ---------- */
-function fill(sel, items, label) { sel.innerHTML = ''; items.forEach((it, i) => { const o = document.createElement('option'); o.value = i; o.textContent = label(it); sel.appendChild(o); }); }
-fill($('#sCam'), CAMERAS, c => c.n);
-fill($('#sSq'), SQUEEZE, v => v === 1 ? '1× (spherical)' : v + '×');
-fill($('#sAsp'), ASPECTS, a => a.n);
-fill($('#sPh'), PHONE, p => p.n);
+function pushRecent() {
+  const k = [S.camMake, S.camModel, S.modeIdx, S.lensId, S.adapter].join('|');
+  recents = recents.filter(x => x.k !== k); recents.unshift({k, s:{camMake:S.camMake, camModel:S.camModel, modeIdx:S.modeIdx, lensId:S.lensId, focal:S.focal, adapter:S.adapter}});
+  recents = recents.slice(0, 6); store.set('vf2recent', recents);
+}
+function applyRig(s) { Object.assign(S, s); const r = rig(); S.focal = r.f; saveS(); pushRecent(); }
+function rigDesc(s) {
+  const cams = allCams(), cam = cams.find(c => c.make === s.camMake && c.model === s.camModel); const lens = allLens().find(l => l.id === s.lensId);
+  if (!cam || !lens) return null;
+  const m = cam.modes[Math.min(s.modeIdx, cam.modes.length - 1)];
+  return {t:cam.make + ' ' + cam.model, d:m.n + ' · ' + lens.make + ' ' + lens.name + (ADAPTERS[s.adapter].f !== 1 ? ' · ' + ADAPTERS[s.adapter].n : '')};
+}
 
-function syncUI() {
-  $('#sCam').value = state.cam; $('#cRow').classList.toggle('hide', !!CAMERAS[state.cam].w);
-  $('#cW').value = state.cw; $('#cH').value = state.ch;
-  $('#sFocal').value = state.focal; $('#sSq').value = SQUEEZE.indexOf(+state.squeeze) < 0 ? 0 : SQUEEZE.indexOf(+state.squeeze);
-  $('#sAsp').value = state.aspect;
-  const pi = PHONE.findIndex(p => p.eq === +state.phoneEq); $('#sPh').value = pi < 0 ? PHONE.length - 1 : pi;
-  $('#sPhEq').value = state.phoneEq; $('#sRes').value = state.res;
-  $('#gThirds').checked = !!state.thirds; $('#gCenter').checked = !!state.center; $('#gSafe').checked = !!state.safe; $('#gCrop').checked = !!state.crop;
+function rigPage() {
+  const r = rig(), root = h('div', {class:'pg'});
+  const lensDet = [r.lens.t, r.lens.cov].concat(r.lens.zoom ? [r.lens.zoom[0] + '–' + r.lens.zoom[1] + 'mm'] : []).join(' · ');
+  root.append(head('Choose your rig', null, null, 'Close', closeSheet),
+    h('div', {class:'rcgrid'},
+      rc('Camera', r.cam.make + ' ' + r.cam.model, r.mode.n + (r.mode.res ? ' (' + r.mode.res + ')' : ''), () => openPage(camPage), 'cam'),
+      rc('Lens set', r.lens.make + ' ' + r.lens.name, lensDet + (r.sq !== 1 ? ' · ' + r.sq + '× anamorphic' : ''), () => openPage(lensPage), 'lens')),
+    rc('Adapter', r.ad.n, r.ad.f === 1 ? 'Nothing between the lens and the body' : (adStops(r.ad) >= 0 ? '+' : '−') + Math.abs(adStops(r.ad)).toFixed(1) + ' stops · ' + r.ad.f + '× field', () => openPage(adapterPage), 'gear'));
+  root.lastChild.style.marginTop = '12px';
+  root.append(h('button', {class:'big', text:'⊕  Save this rig', on:{click:() => {
+    const nm = prompt('Name this rig', r.cam.model + ' + ' + r.lens.name); if (!nm) return;
+    savedRigs.unshift({name:nm, s:{camMake:S.camMake, camModel:S.camModel, modeIdx:S.modeIdx, lensId:S.lensId, focal:S.focal, adapter:S.adapter}});
+    store.set('vf2rigs', savedRigs); openPage(rigPage); }}}));
+  if (savedRigs.length) {
+    root.append(h('div', {class:'sec', text:'Saved'}), h('div', {class:'list'}, savedRigs.map((x, i) => {
+      const d = rigDesc(x.s) || {t:'(unavailable)', d:''};
+      return h('div', {class:'li'}, h('button', {class:'tx', style:'background:none;border:0;text-align:left;padding:0;font-size:17px', on:{click:() => { applyRig(x.s); openPage(rigPage); renderStrip(); }}},
+        h('b', {text:x.name}), h('span', {class:'s', text:d.t + ' · ' + d.d})),
+        h('button', {class:'x', style:'background:none;border:0', text:'×', on:{click:() => { savedRigs.splice(i, 1); store.set('vf2rigs', savedRigs); openPage(rigPage); }}}));
+    })));
+  }
+  const rs = recents.map(x => ({x, d:rigDesc(x.s)})).filter(o => o.d);
+  if (rs.length) root.append(h('div', {class:'sec', text:'Recent'}), h('div', {class:'list'}, rs.map(o =>
+    h('button', {class:'li', on:{click:() => { applyRig(o.x.s); openPage(rigPage); renderStrip(); }}}, h('span', {class:'tx'}, h('b', {text:o.d.t}), h('span', {class:'s', text:o.d.d}))))));
+  root.append(h('button', {class:'pill', text:'Close', on:{click:closeSheet}}));
+  return root;
+}
+const SV = '<svg viewBox="0 0 48 48" width="40" height="40" fill="none" stroke="#ffb300" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">';
+const ICONS = {
+  cam: SV + '<rect x="5" y="14" width="38" height="26" rx="5"/><path d="M17 14l3-6h8l3 6"/><circle cx="24" cy="27" r="7"/></svg>',
+  lens: SV + '<circle cx="24" cy="24" r="19"/><path d="M24 5a19 19 0 0 1 0 38z" fill="#ffb300"/></svg>',
+  gear: SV + '<circle cx="24" cy="24" r="14" stroke-width="3"/><circle cx="24" cy="24" r="19" stroke-width="6" stroke-dasharray="4.5 6.4"/><circle cx="24" cy="24" r="5"/></svg>'
+};
+function rc(label, title, detail, fn, icon) {
+  return h('button', {class:'rc', on:{click:fn}}, h('div', {class:'ri', html:ICONS[icon]}),
+    h('div', {class:'rt'}, h('div', {class:'lab', text:label}), h('div', {class:'ttl', text:title}), h('div', {class:'det', text:detail})), h('div', {class:'chev', text:'›'}));
+}
+
+function camPage() {
+  let q = '', mk = S.camMake, md = S.camModel;
+  const root = h('div', {class:'pg'}), cols = h('div', {class:'cols c3'});
+  const search = h('input', {class:'search', placeholder:'Search cameras', on:{input:e => { q = e.target.value; paint(); }}});
+  function paint() {
+    const all = allCams(), ql = q.trim().toLowerCase();
+    const match = c => !ql || (c.make + ' ' + c.model + ' ' + c.modes.map(m => m.n).join(' ')).toLowerCase().includes(ql);
+    const makes = [...new Set(all.filter(match).map(c => c.make))];
+    if (!makes.includes(mk)) mk = makes[0];
+    const models = all.filter(c => c.make === mk && match(c));
+    if (!models.find(c => c.model === md)) md = models[0] && models[0].model;
+    const cam = models.find(c => c.model === md);
+    const col = (title, items) => h('div', null, h('div', {class:'lab', style:'margin:0 4px 6px', text:title}), h('div', {class:'colbox'}, h('div', {class:'list', style:'border-radius:0;background:none'}, items)));
+    cols.replaceChildren(
+      col('Make', makes.map(m => h('button', {class:'li' + (m === mk ? ' on' : ''), on:{click:() => { mk = m; md = null; paint(); }}}, h('span', {class:'tx', text:m}), h('span', {class:'cnt', text:all.filter(c => c.make === m && match(c)).length})))),
+      col('Model', models.map(c => h('button', {class:'li' + (c.model === md ? ' on' : ''), on:{click:() => { md = c.model; paint(); }}}, h('span', {class:'tx', text:c.model}), h('span', {class:'cnt', text:c.modes.length})))),
+      col('Sensor mode', cam ? cam.modes.map((m, i) => {
+        const on = cam.make === S.camMake && cam.model === S.camModel && i === S.modeIdx;
+        return h('button', {class:'li' + (on ? ' on' : ''), on:{click:() => { S.camMake = cam.make; S.camModel = cam.model; S.modeIdx = i; const r = rig(); S.focal = r.f; saveS(); pushRecent(); paint(); renderStrip(); }}},
+          h('span', {class:'tx'}, m.n, h('span', {class:'s', text:m.w + ' × ' + m.h + ' mm · ' + (m.w / m.h).toFixed(2) + ':1'})), on ? h('span', {class:'ck on'}) : null);
+      }) : []));
+  }
+  root.append(head('Camera', 'Rig', () => openPage(rigPage), 'Done', () => openPage(rigPage)),
+    h('div', {class:'srow'}, search, h('button', {class:'btn', text:'＋ Custom', on:{click:() => {
+      const nm = prompt('Camera name', 'My camera'); if (!nm) return;
+      const w = parseFloat(prompt('Sensor width in mm', '24.9')), hh = parseFloat(prompt('Sensor height in mm', '13.1'));
+      if (!(w > 0 && hh > 0)) return;
+      customCams.push({make:'Custom', model:nm, modes:[M(w + ' × ' + hh + ' mm', w, hh)]}); store.set('vf2cams', customCams);
+      S.camMake = 'Custom'; S.camModel = nm; S.modeIdx = 0; saveS(); mk = 'Custom'; md = nm; paint(); renderStrip(); }}})), cols);
+  paint(); return root;
+}
+
+function lensPage() {
+  let q = '', mk = allLens().find(l => l.id === S.lensId) ? allLens().find(l => l.id === S.lensId).make : 'ARRI';
+  const root = h('div', {class:'pg'}), cols = h('div', {class:'cols c2'});
+  const search = h('input', {class:'search', placeholder:'Search lenses', on:{input:e => { q = e.target.value; paint(); }}});
+  function paint() {
+    const all = allLens(), ql = q.trim().toLowerCase();
+    const match = l => !ql || (l.make + ' ' + l.name).toLowerCase().includes(ql);
+    const makes = [...new Set(all.filter(match).map(l => l.make))];
+    if (!makes.includes(mk)) mk = makes[0];
+    const sets = all.filter(l => l.make === mk && match(l));
+    const col = (title, items) => h('div', null, h('div', {class:'lab', style:'margin:0 4px 6px', text:title}), h('div', {class:'colbox'}, h('div', {class:'list', style:'border-radius:0;background:none'}, items)));
+    cols.replaceChildren(
+      col('Make', makes.map(m => h('button', {class:'li' + (m === mk ? ' on' : ''), on:{click:() => { mk = m; paint(); }}}, h('span', {class:'tx', text:m}), h('span', {class:'cnt', text:all.filter(l => l.make === m && match(l)).length})))),
+      col('Lens set', sets.map(l => {
+        const det = [l.t, l.cov].concat(l.zoom ? [l.zoom[0] + '–' + l.zoom[1] + 'mm'] : l.f.slice(0, 9).map(fmtF)).join(' · ') + (l.f && l.f.length > 9 ? ' · …' : '');
+        return h('button', {class:'li' + (l.id === S.lensId ? ' on' : ''), on:{click:() => {
+          S.lensId = l.id; const r = rig(); if (l.zoom) S.focal = clamp(S.focal, l.zoom[0], l.zoom[1]); else S.focal = l.f.reduce((a, b) => Math.abs(b - S.focal) < Math.abs(a - S.focal) ? b : a);
+          saveS(); pushRecent(); renderStrip(); openPage(rigPage); }}},
+          h('span', {class:'tx'}, l.name, l.sq !== 1 ? h('span', {class:'tag', text:l.sq + 'x'}) : null, h('span', {class:'s', text:det + (l.approx ? ' (list approximate)' : '')})), h('span', {class:'chev', text:'›'}));
+      })));
+  }
+  root.append(head('Lens', 'Rig', () => openPage(rigPage), 'Cancel', () => openPage(rigPage)),
+    h('div', {class:'srow'}, search, h('button', {class:'btn', text:'＋ Custom', on:{click:() => {
+      const nm = prompt('Lens set name', 'My lenses'); if (!nm) return;
+      const fs = (prompt('Focal lengths in mm, separated by commas (a zoom: just two numbers, e.g. 24-70)', '24, 35, 50, 85') || '').trim();
+      const sq = parseFloat(prompt('Anamorphic squeeze (1 for spherical)', '1')) || 1;
+      let l; const rng = fs.match(/^([\d.]+)\s*[-–]\s*([\d.]+)$/);
+      if (rng) l = Z('Custom', nm, '', '', +rng[1], +rng[2], {sq});
+      else { const arr = fs.split(/[ ,]+/).map(parseFloat).filter(v => v > 0).sort((a, b) => a - b); if (!arr.length) return; l = P('Custom', nm, '', '', arr, {sq}); }
+      l.id = 'custom-' + Date.now(); customLens.push(l); store.set('vf2lens', customLens); S.lensId = l.id; S.focal = l.zoom ? l.zoom[0] : l.f[0]; saveS(); renderStrip(); openPage(rigPage); }}})), cols,
+    h('p', {class:'mut', style:'text-align:center', text:'Focal lengths are from public spec sheets and may not list every lens. Check against your own set, or add a custom lens set.'}));
+  paint(); return root;
+}
+
+function adapterPage() {
+  const root = h('div', {class:'pg'});
+  root.append(head('Adapter', 'Rig', () => openPage(rigPage), 'Cancel', () => openPage(rigPage)), h('div', {class:'list'}, ADAPTERS.map((a, i) => {
+    const st = adStops(a);
+    return h('button', {class:'li', on:{click:() => { S.adapter = i; saveS(); pushRecent(); renderStrip(); openPage(rigPage); }}},
+      h('span', {class:'tx'}, a.n, a.f !== 1 ? h('span', {class:'s', text:(st >= 0 ? '+' : '−') + Math.abs(st).toFixed(1) + ' stops'}) : null, a.f !== 1 ? h('span', {class:'tag', text:a.f.toFixed(1) + '×'}) : null),
+      h('span', {class:'ck' + (S.adapter === i ? ' on' : '')}));
+  })),
+  h('p', {class:'mut', style:'text-align:center', text:'A speed booster makes the lens wider (field × 0.71 and so on) and brighter. A teleconverter does the opposite.'}));
+  return root;
+}
+
+function framesPage() {
+  const root = h('div', {class:'pg'});
+  const paint = () => {
+    root.replaceChildren(h('div', {class:'lab', text:'Framelines', style:'margin:10px 0 18px'}),
+      h('div', {class:'opts'}, FLS.map(f => h('button', {class:'opt' + ((S.fl === f.a && !S.flc) ? ' on' : ''), text:f.n, on:{click:() => { S.fl = f.a; S.flc = 0; saveS(); paint(); }}})),
+        h('button', {class:'opt' + (S.flc ? ' on' : ''), text:'+ custom', on:{click:() => {
+          const v = prompt('Custom aspect ratio, e.g. 2.2 or 21:9', S.flc ? S.fl : '2.2'); if (!v) return;
+          const m = v.match(/^([\d.]+)\s*[:x/]\s*([\d.]+)$/); const a = m ? m[1] / m[2] : parseFloat(v);
+          if (a > 0.2 && a < 6) { S.fl = a; S.flc = 1; saveS(); paint(); } }}})),
+      h('div', {class:'frow'},
+        tg('Center mark', 'center'), tg('Thirds', 'thirds'), tg('Horizon', 'horizon', v => { if (v) enableHorizon(); else roll = null; }),
+        seg('Safe', 'safe', [[0, 'Off'], [95, '95%'], [90, '90%']]), seg('Mask', 'mask', [[0.75, '75%'], [0.85, '85%'], [0.95, '95%']]), seg('Line', 'line', [[1, 'Thin'], [2, 'Med']])),
+      h('div', {class:'btnrow', style:'justify-content:flex-start;gap:30px;margin-top:40px'},
+        h('button', {class:'opt on', style:'letter-spacing:.12em', text:'DONE', on:{click:closeSheet}}),
+        h('button', {class:'opt', style:'letter-spacing:.12em', text:'RESET', on:{click:() => { Object.assign(S, {fl:0, flc:0, center:true, thirds:false, horizon:false, safe:0, mask:0.85, line:1}); saveS(); roll = null; paint(); }}})));
+  };
+  const tg = (label, key, cb) => h('button', {class:'opt' + (S[key] ? ' on' : ''), text:label, on:{click:() => { S[key] = !S[key]; saveS(); if (cb) cb(S[key]); paint(); }}});
+  const seg = (label, key, opts) => h('div', {class:'grp3'}, h('span', {class:'l', text:label}), h('div', {class:'stack'}, opts.map(o => h('button', {class:'opt' + (S[key] === o[0] ? ' on' : ''), text:o[1], style:'font-size:17px;padding:3px 0', on:{click:() => { S[key] = o[0]; saveS(); paint(); }}}))));
+  paint(); return root;
+}
+
+function setupPage() {
+  const root = h('div', {class:'pg'});
+  root.append(head('Setup', null), h('div', {class:'list'},
+    h('button', {class:'li', on:{click:() => openPage(calibPage, true)}}, h('span', {class:'tx'}, 'Calibrate phone camera', h('span', {class:'s', text:'Measure the real field of view so lenses match reality'})), h('span', {class:'chev', text:'›'})),
+    h('button', {class:'li', on:{click:() => { S.auto = !S.auto; saveS(); openPage(setupPage); }}}, h('span', {class:'tx'}, 'Auto-switch phone camera', h('span', {class:'s', text:'Uses ultrawide / main / telephoto where your phone allows it'})), h('span', {class:'ck' + (S.auto ? ' on' : '')})),
+    h('button', {class:'li', on:{click:() => { S.res = S.res === 'high' ? 'std' : 'high'; saveS(); openPage(setupPage); startCam(activeId); }}}, h('span', {class:'tx'}, 'High-resolution preview', h('span', {class:'s', text:'Sharper when zoomed in, uses more battery'})), h('span', {class:'ck' + (S.res === 'high' ? ' on' : '')})),
+    h('button', {class:'li', on:{click:() => { if (confirm('Reset rig, framelines and calibration? Saved frames are kept.')) { S = Object.assign({}, DEF); saveS(); renderStrip(); openPage(setupPage); startCam(''); } }}}, h('span', {class:'tx'}, 'Reset settings'))),
+    h('div', {class:'sec', text:'Phone cameras found'}),
+    h('div', {class:'list'}, (cams.length ? cams : [{label:'(start the camera first)', id:''}]).map(c => h('div', {class:'li'}, h('span', {class:'tx'}, c.label, h('span', {class:'s', text:c.id ? 'H-FOV ' + camHfov(c).toFixed(1) + '° · ' + (S.calib[c.id] ? 'calibrated' : 'default estimate') : ''}))))),
+    h('p', {class:'mut', text:'Sensor sizes and lens lists come from public specs and are approximate. A phone shows the real field of view only after calibration, and cannot show anything wider than its widest camera.'}),
+    h('button', {class:'pill', text:'Close', on:{click:closeSheet}}));
+  return root;
+}
+
+function calibPage() {
+  calibMode = true;
+  const root = h('div', {class:'pg', style:'padding:0'});
+  const ac = activeCam();
+  const out = h('div', {class:'mono', style:'font-size:15px;color:var(--acc)'});
+  const dist = h('input', {type:'number', step:'0.01', inputmode:'decimal', placeholder:'e.g. 2'}), wid = h('input', {type:'number', step:'0.01', inputmode:'decimal', placeholder:'e.g. 2.6'});
+  const hf = h('input', {type:'number', step:'0.1', inputmode:'decimal'});
+  const upd = () => { const c = activeCam(); hf.value = camHfov(c).toFixed(1); out.textContent = c.label + ' · H-FOV ' + camHfov(c).toFixed(1) + '° · ≈ ' + (34.6 / (2 * Math.tan(camHfov(c) * D2R / 2))).toFixed(1) + 'mm (4:3 equiv.)'; };
+  const sel = h('select', {on:{change:async e => { await startCam(e.target.value); openPage(calibPage, true); }}}, cams.map(c => h('option', {value:c.id, selected:c.id === activeId ? 'selected' : null, text:c.label})));
+  root.append(h('div', {class:'panel'},
+    h('div', {class:'lab', text:'Calibrate phone camera'}), h('p', {class:'mut', style:'margin:6px 0', text:'Point the phone straight at a flat wall. The amber lines mark the left and right edge of the view. Measure the distance from the phone to the wall, and the width of wall between the two edges.'}),
+    cams.length > 1 ? h('div', {class:'row'}, h('label', {text:'Phone camera'}), sel) : null,
+    h('div', {class:'row'}, h('label', {text:'Distance to wall (m)'}), dist),
+    h('div', {class:'row'}, h('label', {text:'Visible width (m)'}), wid),
+    h('div', {class:'row'}, h('label', {text:'H-FOV (degrees)'}), hf),
+    out,
+    h('div', {class:'btnrow'}, h('button', {class:'btn', text:'Use default', on:{click:() => { delete S.calib[activeId]; saveS(); upd(); }}}),
+      h('button', {class:'btn', text:'Apply', on:{click:() => {
+        let v = parseFloat(hf.value); const d = parseFloat(dist.value), w = parseFloat(wid.value);
+        if (d > 0 && w > 0) v = 2 * Math.atan(w / 2 / d) / D2R;
+        if (v > 5 && v < 170) { S.calib[activeId] = v; saveS(); upd(); } }}}),
+      h('button', {class:'btn pri', text:'Done', on:{click:() => { calibMode = false; lastHud = ''; openPage(setupPage); }}}))));
+  upd(); return root;
+}
+
+function notePage() {
+  const root = h('div', {class:'pg'}), img = h('img', {style:'width:100%;max-height:52vh;object-fit:contain;border-radius:10px;background:#000;margin-bottom:10px'});
+  if (prevUrl) URL.revokeObjectURL(prevUrl); prevUrl = URL.createObjectURL(pending.blob); img.src = prevUrl;
+  const note = h('textarea', {rows:'2', placeholder:'Note (blocking, subject, intent…)', style:'width:100%;background:#222;border:1px solid #3a3a3a;border-radius:8px;padding:10px;font-size:16px;-webkit-user-select:text;user-select:text'});
+  root.append(head('Save frame'), img, h('div', {class:'mut mono', style:'margin-bottom:10px', text:metaStr(pending)}), note,
+    h('div', {class:'btnrow'}, h('button', {class:'btn', text:'Discard', on:{click:() => { pending = null; closeSheet(); }}}),
+      h('button', {class:'btn pri', text:'Save', on:{click:async () => { pending.note = note.value.trim(); await tx('readwrite', s => s.add(pending)); pending = null; closeSheet(); }}})));
+  return root;
+}
+
+let galUrls = [];
+function galleryPage() {
+  const root = h('div', {class:'pg'}), box = h('div', {id:'gal'});
+  root.append(h('div', {class:'ttl-row'}, h('button', {class:'back', text:'‹ Close', on:{click:closeSheet}}), h('h1', {text:'Saved frames'}), h('button', {class:'btn', style:'justify-self:end', text:'Export CSV', on:{click:exportCsv}})), box);
+  (async () => {
+    galUrls.forEach(u => URL.revokeObjectURL(u)); galUrls = [];
+    const list = ((await tx('readonly', s => s.getAll())) || []).reverse();
+    if (!list.length) { box.append(h('p', {class:'mut', text:'No frames saved yet.'})); return; }
+    for (const r of list) {
+      const url = URL.createObjectURL(r.blob); galUrls.push(url);
+      box.append(h('div', {class:'gc'}, h('img', {src:url, alt:'Saved frame'}),
+        h('div', {class:'t'}, new Date(r.ts).toLocaleString() + ' · ' + metaStr(r), h('div', {class:'n', text:r.note || ''})),
+        h('div', {class:'a'},
+          h('button', {text:'Save / share', on:{click:() => shareOrSave(r)}}),
+          h('button', {text:'Note', on:{click:async () => { const v = prompt('Note for this frame', r.note || ''); if (v === null) return; r.note = v.trim(); await tx('readwrite', s => s.put(r)); openPage(galleryPage); }}}),
+          h('button', {text:'Delete', on:{click:async () => { if (!confirm('Delete this frame?')) return; await tx('readwrite', s => s.delete(r.id)); openPage(galleryPage); }}}))));
+    }
+  })();
+  return root;
+}
+async function exportCsv() {
+  const list = (await tx('readonly', s => s.getAll())) || [];
+  const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const rows = [['time','file','camera','sensor_mode','lens','focal_mm','effective_mm','t_stop','squeeze','adapter','frameline','hfov_deg','vfov_deg','note'].join(',')];
+  list.forEach(r => rows.push([new Date(r.ts).toISOString(), fname(r), r.cam, r.mode, r.lens, r.focal, r.eff, r.t, r.squeeze, r.adapter, r.aspect, r.hfov, r.vfov, r.note].map(q).join(',')));
+  download(new Blob([rows.join('\n')], {type:'text/csv'}), 'viewfinder_frames.csv');
+}
+
+/* =====================  LENS STRIP  ===================== */
+function renderStrip() {
+  const r = rig(), strip = $('#strip'); strip.replaceChildren();
+  if (r.lens.zoom) {
+    const [lo, hi] = r.lens.zoom, step = (hi - lo) > 60 ? 1 : 0.5;
+    const val = h('span', {class:'zv', text:fmtF(r.f) + 'mm'});
+    const set = v => { S.focal = clamp(Math.round(v / step) * step, lo, hi); saveS(); val.textContent = fmtF(S.focal) + 'mm'; sl.value = S.focal; };
+    const sl = h('input', {type:'range', min:lo, max:hi, step, value:r.f, on:{input:e => set(+e.target.value)}});
+    strip.append(h('button', {class:'chip', text:'−', on:{click:() => set(S.focal - step)}}), sl, h('button', {class:'chip', text:'+', on:{click:() => set(S.focal + step)}}), val);
+  } else {
+    r.lens.f.forEach(f => strip.append(h('button', {class:'chip' + (f === r.f ? ' on' : ''), 'data-f':f, text:fmtF(f), on:{click:() => { S.focal = f; saveS(); renderStrip(); }}})));
+    const on = strip.querySelector('.on'); if (on) on.scrollIntoView({inline:'center', block:'nearest'});
+  }
   lastHud = '';
 }
-const on = (id, ev, fn) => $(id).addEventListener(ev, () => { fn(); save(); syncUI(); });
-on('#sCam', 'change', () => state.cam = +$('#sCam').value);
-on('#cW', 'change', () => state.cw = +$('#cW').value || DEF.cw);
-on('#cH', 'change', () => state.ch = +$('#cH').value || DEF.ch);
-on('#sFocal', 'change', () => state.focal = Math.max(1, +$('#sFocal').value || 35));
-on('#sSq', 'change', () => state.squeeze = SQUEEZE[+$('#sSq').value]);
-on('#sAsp', 'change', () => state.aspect = +$('#sAsp').value);
-on('#sPh', 'change', () => { const p = PHONE[+$('#sPh').value]; if (p.eq) state.phoneEq = p.eq; });
-on('#sPhEq', 'change', () => state.phoneEq = Math.max(5, +$('#sPhEq').value || 26));
-on('#gThirds', 'change', () => state.thirds = $('#gThirds').checked);
-on('#gCenter', 'change', () => state.center = $('#gCenter').checked);
-on('#gSafe', 'change', () => state.safe = $('#gSafe').checked);
-on('#gCrop', 'change', () => state.crop = $('#gCrop').checked);
-$('#sRes').addEventListener('change', () => { state.res = +$('#sRes').value; save(); startCam(state.deviceId); });
-$('#sDev').addEventListener('change', () => { state.deviceId = $('#sDev').value; save(); startCam(state.deviceId); });
-$('#bSet').onclick = () => { syncUI(); $('#setSheet').classList.add('open'); };
-$('#lens').onclick = () => { syncUI(); $('#setSheet').classList.add('open'); $('#sFocal').focus(); };
-$('#setClose').onclick = () => $('#setSheet').classList.remove('open');
 
-/* ---------- boot ---------- */
-syncUI(); requestAnimationFrame(draw);
+/* =====================  WIRING  ===================== */
+$('#bRig').onclick = () => openPage(rigPage);
+$('#bFl').onclick = () => openPage(framesPage);
+$('#bGal').onclick = () => openPage(galleryPage);
+$('#bSet').onclick = () => openPage(setupPage);
+renderStrip(); requestAnimationFrame(draw);
+if (S.horizon) enableHorizon().catch(() => {});
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
-document.addEventListener('visibilitychange', async () => {
-  if (!document.hidden) { try { if ('wakeLock' in navigator && stream) await navigator.wakeLock.request('screen'); } catch (e) {} }
-});
+window.__vf = {geom, rig, get S() { return S; }};   // handy for testing
 </script>
 </body>
 </html>
